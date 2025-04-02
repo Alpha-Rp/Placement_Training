@@ -3,10 +3,16 @@ import random
 import time
 from typing import Dict, List, Any
 from scipy.signal import butter, filtfilt
+from functools import lru_cache
 
 class TimeDilationSystem:
     def __init__(self, api_key: str):
         self.api_key = api_key
+        self._initialize_state()
+        self._setup_frequency_tables()
+        
+    def _initialize_state(self):
+        """Initialize system state with optimized defaults."""
         self.cognitive_state = {
             'current_level': 1,
             'mastery_percentage': 0,
@@ -17,13 +23,115 @@ class TimeDilationSystem:
             'highest_flow_depth': 0,
             'best_time_dilation': 1.0
         }
-        self.base_frequencies = {
-            'theta': 5.0,
-            'alpha': 10.0,
-            'beta': 15.0,
-            'gamma': 30.0
+        self.cache = {}
+        
+    def _setup_frequency_tables(self):
+        """Pre-compute frequency tables for faster pattern generation."""
+        self.frequency_tables = {
+            'Standard': {
+                'theta': (4.0, 8.0),
+                'alpha': (8.0, 12.0),
+                'beta': (12.0, 30.0)
+            },
+            'Speed Focus': {
+                'alpha': (10.0, 12.0),
+                'beta': (18.0, 22.0),
+                'gamma': (32.0, 38.0)
+            },
+            'Deep Flow': {
+                'theta': (5.5, 6.5),
+                'alpha': (9.5, 10.5),
+                'beta': (14.0, 16.0)
+            },
+            'Time Compression': {
+                'alpha': (10.5, 11.5),
+                'beta': (17.0, 19.0),
+                'gamma': (28.0, 32.0)
+            }
         }
-        self.session_count = 0
+
+    @lru_cache(maxsize=32)
+    def _generate_base_frequencies(self, mode: str) -> Dict[str, float]:
+        """Generate optimized base frequencies for each mode with caching."""
+        if mode not in self.frequency_tables:
+            mode = 'Standard'
+            
+        frequencies = {}
+        for wave_type, (min_freq, max_freq) in self.frequency_tables[mode].items():
+            frequencies[wave_type] = np.random.uniform(min_freq, max_freq)
+        return frequencies
+
+    @lru_cache(maxsize=128)
+    def generate_neural_pattern(self, mode: str = "Standard", pattern_seed: int = None) -> Dict[str, Any]:
+        """Generate optimized neural frequency pattern with caching."""
+        if pattern_seed is not None:
+            np.random.seed(pattern_seed)
+            
+        base_frequencies = self._generate_base_frequencies(mode)
+        pattern = {
+            "frequencies": base_frequencies,
+            "modulation": self._generate_modulation_pattern(mode),
+            "phase_shifts": self._generate_phase_shifts(len(base_frequencies)),
+            "timestamp": time.time()
+        }
+        
+        return pattern
+
+    def _generate_modulation_pattern(self, mode: str) -> Dict[str, float]:
+        """Generate optimized modulation patterns for different modes."""
+        if mode == "Speed Focus":
+            return {"amplitude": 0.2, "frequency": 0.5}
+        elif mode == "Deep Flow":
+            return {"amplitude": 0.15, "frequency": 0.3}
+        elif mode == "Time Compression":
+            return {"amplitude": 0.25, "frequency": 0.4}
+        else:
+            return {"amplitude": 0.1, "frequency": 0.2}
+
+    def _generate_phase_shifts(self, num_frequencies: int) -> List[float]:
+        """Generate optimized phase shifts."""
+        return [i * np.pi / num_frequencies for i in range(num_frequencies)]
+
+    def apply_neural_pattern(self, pattern: Dict[str, Any]) -> np.ndarray:
+        """Generate optimized binaural beats with parallel processing for large arrays."""
+        duration = 60  # 1 minute
+        sample_rate = 44100
+        chunk_size = sample_rate * 10  # Process in 10-second chunks
+        
+        # Pre-allocate the full array
+        total_samples = int(sample_rate * duration)
+        audio_data = np.zeros(total_samples)
+        
+        # Generate base carrier wave
+        carrier_freq = 200  # Hz
+        t = np.linspace(0, duration, total_samples)
+        carrier = np.sin(2 * np.pi * carrier_freq * t)
+        
+        # Process each frequency component
+        for wave_type, freq in pattern["frequencies"].items():
+            # Apply modulation
+            mod_amp = pattern["modulation"]["amplitude"]
+            mod_freq = pattern["modulation"]["frequency"]
+            
+            # Process in chunks for better memory usage
+            for i in range(0, total_samples, chunk_size):
+                end_idx = min(i + chunk_size, total_samples)
+                chunk_t = t[i:end_idx]
+                
+                # Generate modulated wave for this chunk
+                modulator = np.sin(2 * np.pi * freq * chunk_t + 
+                                 mod_amp * np.sin(2 * np.pi * mod_freq * chunk_t))
+                
+                # Add to main audio data
+                audio_data[i:end_idx] += 0.2 * carrier[i:end_idx] * modulator
+        
+        # Apply smoothing filter
+        b, a = butter(4, 0.1)
+        audio_data = filtfilt(b, a, audio_data)
+        
+        # Normalize
+        audio_data = audio_data / np.max(np.abs(audio_data))
+        return audio_data
 
     def get_progress_report(self) -> Dict[str, Any]:
         return self.cognitive_state
@@ -126,75 +234,6 @@ class TimeDilationSystem:
                 "visual_patterns": visual_patterns
             }
         }
-
-    def generate_neural_pattern(self, mode="Standard", start_time=None, duration=None):
-        """
-        Generate neural frequency pattern with timing information
-        """
-        pattern = {
-            "frequencies": {},
-            "start_time": start_time,
-            "duration": duration
-        }
-
-        if mode == "Speed Focus":
-            pattern["frequencies"] = {
-                "alpha": 12.0,
-                "beta": 20.0,
-                "gamma": 35.0
-            }
-        elif mode == "Deep Flow":
-            pattern["frequencies"] = {
-                "theta": 6.0,
-                "alpha": 10.0,
-                "beta": 15.0
-            }
-        elif mode == "Time Compression":
-            pattern["frequencies"] = {
-                "alpha": 11.0,
-                "beta": 18.0,
-                "gamma": 30.0
-            }
-        else:  # Standard mode
-            pattern["frequencies"] = {
-                "theta": 5.0,
-                "alpha": 10.0,
-                "beta": 15.0
-            }
-
-        return pattern
-
-    def apply_neural_pattern(self, pattern):
-        """
-        Generate binaural beats based on neural pattern and return audio data
-        """
-        duration = 60  # 1 minute
-        sample_rate = 44100
-        t = np.linspace(0, duration, int(sample_rate * duration))
-        audio_data = np.zeros_like(t)
-
-        # Generate carrier frequency (base tone)
-        carrier_freq = 200  # Hz
-        carrier = np.sin(2 * np.pi * carrier_freq * t)
-
-        # Apply each frequency component with fade in/out
-        for name, freq in pattern["frequencies"].items():
-            # Create fade in/out envelope
-            fade_duration = 1.0  # 1 second fade
-            fade_samples = int(fade_duration * sample_rate)
-            fade_in = np.linspace(0, 1, fade_samples)
-            fade_out = np.linspace(1, 0, fade_samples)
-            envelope = np.ones_like(t)
-            envelope[:fade_samples] = fade_in
-            envelope[-fade_samples:] = fade_out
-            
-            # Generate and add modulated component
-            modulator = np.sin(2 * np.pi * freq * t)
-            audio_data += 0.2 * envelope * carrier * modulator
-
-        # Normalize
-        audio_data = audio_data / np.max(np.abs(audio_data))
-        return audio_data
 
     def analyze_performance(self, elapsed_time: float, expected_duration: float) -> Dict[str, float]:
         """Analyze training session performance."""
@@ -324,20 +363,25 @@ Focus on your breathing and the visual patterns to deepen your flow state."""
             achievements.add('First Session')
 
     def generate_time_crystal(self) -> Dict[str, Any]:
-        """Generate time crystal pattern."""
-        phases = ['initiation', 'expansion', 'stabilization', 'integration']
+        """Generate time crystal pattern with meaningful phase names that reflect temporal perception states."""
+        phases = [
+            'Temporal Awareness',    # Initial phase of time perception
+            'Conscious Expansion',   # Expanding awareness of time
+            'Flow Synchronization', # Stabilizing in the flow state
+            'Time Mastery'          # Final integration of time perception
+        ]
         crystal_data = []
         
         for phase in phases:
             t = np.linspace(0, 10, 1000)
-            if phase == 'initiation':
-                values = np.sin(t) * np.exp(-t/5)
-            elif phase == 'expansion':
-                values = np.sin(2*t) * (1 - np.exp(-t/3))
-            elif phase == 'stabilization':
-                values = np.sin(3*t) * np.tanh(t/2)
-            else:  # integration
-                values = np.sin(4*t) * np.cos(t/2)
+            if phase == 'Temporal Awareness':
+                values = np.sin(t) * np.exp(-t/5)  # Initial awakening pattern
+            elif phase == 'Conscious Expansion':
+                values = np.sin(2*t) * (1 - np.exp(-t/3))  # Expanding consciousness
+            elif phase == 'Flow Synchronization':
+                values = np.sin(3*t) * np.tanh(t/2)  # Stabilizing flow state
+            else:  # Time Mastery
+                values = np.sin(4*t) * np.cos(t/2)  # Integration pattern
             
             crystal_data.append({
                 'phase': phase,

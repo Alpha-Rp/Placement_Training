@@ -1,4 +1,4 @@
-import openai
+import google.generativeai as genai
 from typing import Dict, List, Optional
 import json
 import os
@@ -54,19 +54,8 @@ class SmartResumeBuilder(ATSResumeBuilder):
             Return the response as a JSON array of strings.
             """
 
-            response = openai.ChatCompletion.create(
-                model="gpt-4",
-                messages=[{
-                    "role": "system",
-                    "content": "You are an expert at quantifying professional achievements with specific metrics and numbers."
-                }, {
-                    "role": "user",
-                    "content": prompt
-                }],
-                temperature=0.7
-            )
-
-            quantified = json.loads(response.choices[0].message.content)
+            response = self.model.generate_content(prompt)
+            quantified = self._parse_json_response(response.text, achievements)
             return quantified
         except Exception as e:
             print(f"Error quantifying achievements: {str(e)}")
@@ -96,19 +85,9 @@ class SmartResumeBuilder(ATSResumeBuilder):
             Return the response in the same JSON format as the input resume.
             """
 
-            response = openai.ChatCompletion.create(
-                model="gpt-4",
-                messages=[{
-                    "role": "system",
-                    "content": "You are an expert at customizing resumes for specific roles while maintaining authenticity."
-                }, {
-                    "role": "user",
-                    "content": prompt
-                }],
-                temperature=0.7
-            )
-
-            tailored_resume = json.loads(response.choices[0].message.content)
+            response = self.model.generate_content(prompt)
+            tailored_resume = self._parse_json_response(response.text, base_resume)
+            
             version_id = f"{target_role}_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
             self.resume_versions[version_id] = tailored_resume
             return tailored_resume
@@ -144,19 +123,18 @@ class SmartResumeBuilder(ATSResumeBuilder):
             }}
             """
 
-            response = openai.ChatCompletion.create(
-                model="gpt-4",
-                messages=[{
-                    "role": "system",
-                    "content": "You are an expert at competitive resume analysis and market positioning."
-                }, {
-                    "role": "user",
-                    "content": prompt
-                }],
-                temperature=0.7
-            )
-
-            analysis = json.loads(response.choices[0].message.content)
+            response = self.model.generate_content(prompt)
+            analysis = self._parse_json_response(response.text, {
+                "competitive_analysis": {
+                    "strengths": [],
+                    "gaps": [],
+                    "recommendations": []
+                },
+                "market_position": "Not analyzed",
+                "improvement_areas": [],
+                "unique_selling_points": []
+            })
+            
             return analysis
         except Exception as e:
             print(f"Error analyzing competition: {str(e)}")
@@ -178,7 +156,7 @@ class SmartResumeBuilder(ATSResumeBuilder):
             tfidf_matrix = vectorizer.fit_transform([resume_text, job_description])
             similarity_score = cosine_similarity(tfidf_matrix[0:1], tfidf_matrix[1:2])[0][0]
 
-            # Get detailed analysis from GPT
+            # Get detailed analysis from Gemini
             prompt = f"""
             Analyze this resume for ATS optimization:
             
@@ -204,21 +182,22 @@ class SmartResumeBuilder(ATSResumeBuilder):
             }}
             """
 
-            response = openai.ChatCompletion.create(
-                model="gpt-4",
-                messages=[{
-                    "role": "system",
-                    "content": "You are an expert at ATS optimization and resume scoring."
-                }, {
-                    "role": "user",
-                    "content": prompt
-                }],
-                temperature=0.7
-            )
-
-            ats_analysis = json.loads(response.choices[0].message.content)
+            response = self.model.generate_content(prompt)
+            ats_analysis = self._parse_json_response(response.text, {
+                "ats_score": 0.0,
+                "keyword_match_rate": 0.0,
+                "missing_keywords": [],
+                "format_issues": [],
+                "optimization_tips": ["Review the resume content"],
+                "section_scores": {
+                    "professional_summary": 0.0,
+                    "work_experience": 0.0,
+                    "skills": 0.0,
+                    "education": 0.0
+                }
+            })
             
-            # Combine ML score with GPT analysis
+            # Combine ML score with Gemini analysis
             ats_analysis["similarity_score"] = float(similarity_score)
             return ats_analysis
         except Exception as e:
@@ -320,12 +299,26 @@ class SmartResumeBuilder(ATSResumeBuilder):
             story.append(Paragraph(" | ".join(filter(None, contact_details)), normal_style))
             story.append(Spacer(1, 20))
             
+            # Add professional summary
+            if resume_content.get("professional_summary"):
+                story.append(Paragraph("Professional Summary", heading_style))
+                story.append(Paragraph(resume_content["professional_summary"], normal_style))
+                story.append(Spacer(1, 20))
+            
             # Add work experience
-            story.append(Paragraph("Professional Experience", heading_style))
-            for exp in resume_content.get("work_experience", []):
-                for achievement in exp.get("achievements", []):
-                    story.append(Paragraph(f"• {achievement}", normal_style))
-            story.append(Spacer(1, 20))
+            if resume_content.get("work_experience"):
+                story.append(Paragraph("Professional Experience", heading_style))
+                for exp in resume_content["work_experience"]:
+                    company = exp.get('company', '')
+                    title = exp.get('title', '')
+                    dates = exp.get('dates', '')
+                    exp_text = f"<b>{title}</b> at <b>{company}</b> ({dates})"
+                    story.append(Paragraph(exp_text, normal_style))
+                    
+                    for achievement in exp.get('achievements', []):
+                        story.append(Paragraph(f"• {achievement}", normal_style))
+                    story.append(Spacer(1, 12))
+                story.append(Spacer(1, 20))
             
             # Add education
             if resume_content.get("education"):
@@ -334,18 +327,49 @@ class SmartResumeBuilder(ATSResumeBuilder):
                 story.append(Spacer(1, 20))
             
             # Add skills
-            if resume_content.get("skills"):
-                story.append(Paragraph("Skills", heading_style))
-                skills_text = ", ".join(resume_content["skills"])
-                story.append(Paragraph(skills_text, normal_style))
+            if resume_content.get("technical_skills"):
+                story.append(Paragraph("Technical Skills", heading_style))
+                for category, skills in resume_content["technical_skills"].items():
+                    if skills:
+                        story.append(Paragraph(f"<b>{category}:</b> {', '.join(skills)}", normal_style))
+                story.append(Spacer(1, 20))
+            
+            # Add projects
+            if resume_content.get("projects"):
+                story.append(Paragraph("Projects", heading_style))
+                for project in resume_content["projects"]:
+                    name = project.get('name', '')
+                    desc = project.get('description', '')
+                    tech = project.get('technologies', [])
+                    
+                    story.append(Paragraph(f"<b>{name}</b>", normal_style))
+                    if desc:
+                        story.append(Paragraph(desc, normal_style))
+                    if tech:
+                        story.append(Paragraph(f"<b>Technologies:</b> {', '.join(tech)}", normal_style))
+                    story.append(Spacer(1, 12))
                 story.append(Spacer(1, 20))
             
             # Add certifications
             if resume_content.get("certifications"):
                 story.append(Paragraph("Certifications", heading_style))
-                for cert in resume_content["certifications"]:
+                for cert in resume_content["certifications"].get("completed", []):
                     if cert.strip():
                         story.append(Paragraph(f"• {cert}", normal_style))
+                story.append(Spacer(1, 20))
+            
+            # Add languages
+            if resume_content.get("languages"):
+                story.append(Paragraph("Languages", heading_style))
+                languages_text = ', '.join(resume_content["languages"])
+                story.append(Paragraph(languages_text, normal_style))
+                story.append(Spacer(1, 20))
+            
+            # Add interests
+            if resume_content.get("interests"):
+                story.append(Paragraph("Interests", heading_style))
+                interests_text = ', '.join(resume_content["interests"])
+                story.append(Paragraph(interests_text, normal_style))
             
             # Build the PDF
             doc.build(story)

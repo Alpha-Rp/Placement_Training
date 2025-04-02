@@ -1,4 +1,4 @@
-import openai
+import google.generativeai as genai
 import datetime
 from typing import Dict, List, Optional
 import json
@@ -6,11 +6,12 @@ import os
 
 class CareerCoach:
     def __init__(self, api_key: str):
-        """Initialize the career coach with OpenAI API key."""
+        """Initialize the career coach with Gemini API key."""
         if not api_key:
-            raise ValueError("OpenAI API key is required")
+            raise ValueError("Gemini API key is required")
         self.api_key = api_key
-        openai.api_key = self.api_key
+        genai.configure(api_key=self.api_key)
+        self.model = genai.GenerativeModel('gemini-1.5-pro')
         
     def generate_daily_motivation(self, user_profile: Dict) -> Dict:
         """Generate personalized daily motivation message."""
@@ -31,19 +32,28 @@ class CareerCoach:
             }}
             """
             
-            response = openai.ChatCompletion.create(
-                model="gpt-3.5-turbo",
-                messages=[{
-                    "role": "system",
-                    "content": "You are an experienced career coach who provides personalized, actionable advice."
-                }, {
-                    "role": "user",
-                    "content": prompt
-                }],
-                temperature=0.7
-            )
+            response = self.model.generate_content(prompt)
+            # Clean the response text to ensure it's valid JSON
+            response_text = response.text.strip()
+            if response_text.startswith('```json'):
+                response_text = response_text[7:]
+            if response_text.endswith('```'):
+                response_text = response_text[:-3]
+            response_text = response_text.strip()
             
-            return json.loads(response.choices[0].message.content)
+            try:
+                return json.loads(response_text)
+            except json.JSONDecodeError as e:
+                print(f"JSON parsing error: {str(e)}")
+                print(f"Raw response: {response_text}")
+                # Fallback to a structured response if JSON parsing fails
+                return {
+                    "message": response_text,
+                    "focus_area": "General Development",
+                    "quick_tip": "Stay focused on your goals",
+                    "quote": "Success is not final, failure is not fatal",
+                    "action_item": "Review your goals for today"
+                }
         except Exception as e:
             print(f"Error generating motivation: {str(e)}")
             return None
@@ -76,19 +86,34 @@ class CareerCoach:
             }}
             """
             
-            response = openai.ChatCompletion.create(
-                model="gpt-3.5-turbo",
-                messages=[{
-                    "role": "system",
-                    "content": "You are an experienced career coach who creates engaging learning challenges."
-                }, {
-                    "role": "user",
-                    "content": prompt
-                }],
-                temperature=0.7
-            )
+            response = self.model.generate_content(prompt)
+            response_text = response.text.strip()
+            if response_text.startswith('```json'):
+                response_text = response_text[7:]
+            if response_text.endswith('```'):
+                response_text = response_text[:-3]
+            response_text = response_text.strip()
             
-            return json.loads(response.choices[0].message.content)
+            try:
+                return json.loads(response_text)
+            except json.JSONDecodeError as e:
+                print(f"JSON parsing error: {str(e)}")
+                print(f"Raw response: {response_text}")
+                return {
+                    "challenge_name": "Weekly Skill Development",
+                    "description": response_text,
+                    "daily_tasks": [
+                        {
+                            "day": "Monday",
+                            "task": "Review your goals",
+                            "time_required": "1 hour",
+                            "resources": "Your career goals document"
+                        }
+                    ],
+                    "success_criteria": "Complete all daily tasks",
+                    "bonus_challenge": "Share your progress with a mentor",
+                    "expected_outcome": "Improved skills and knowledge"
+                }
         except Exception as e:
             print(f"Error generating weekly challenge: {str(e)}")
             return None
@@ -124,19 +149,35 @@ class CareerCoach:
             }}
             """
             
-            response = openai.ChatCompletion.create(
-                model="gpt-3.5-turbo",
-                messages=[{
-                    "role": "system",
-                    "content": "You are an experienced career coach who provides insightful progress reviews."
-                }, {
-                    "role": "user",
-                    "content": prompt
-                }],
-                temperature=0.7
-            )
+            response = self.model.generate_content(prompt)
+            response_text = response.text.strip()
+            if response_text.startswith('```json'):
+                response_text = response_text[7:]
+            if response_text.endswith('```'):
+                response_text = response_text[:-3]
+            response_text = response_text.strip()
             
-            return json.loads(response.choices[0].message.content)
+            try:
+                return json.loads(response_text)
+            except json.JSONDecodeError as e:
+                print(f"JSON parsing error: {str(e)}")
+                print(f"Raw response: {response_text}")
+                return {
+                    "summary": response_text,
+                    "key_achievements": monthly_data['achievements'],
+                    "areas_of_growth": [
+                        {
+                            "skill": "General Development",
+                            "progress": "In Progress",
+                            "next_steps": "Continue with current learning path"
+                        }
+                    ],
+                    "insights": ["Keep up the good work!"],
+                    "next_month_focus": {
+                        "primary_goal": "Continue skill development",
+                        "action_items": ["Review monthly goals", "Plan next steps"]
+                    }
+                }
         except Exception as e:
             print(f"Error generating monthly review: {str(e)}")
             return None
@@ -178,19 +219,44 @@ class CareerCoach:
             }}
             """
             
-            response = openai.ChatCompletion.create(
-                model="gpt-3.5-turbo",
-                messages=[{
-                    "role": "system",
-                    "content": "You are an experienced career coach who creates detailed action plans."
-                }, {
-                    "role": "user",
-                    "content": prompt
-                }],
-                temperature=0.7
-            )
+            response = self.model.generate_content(prompt)
+            response_text = response.text.strip()
+            if response_text.startswith('```json'):
+                response_text = response_text[7:]
+            if response_text.endswith('```'):
+                response_text = response_text[:-3]
+            response_text = response_text.strip()
             
-            return json.loads(response.choices[0].message.content)
+            try:
+                return json.loads(response_text)
+            except json.JSONDecodeError as e:
+                print(f"JSON parsing error: {str(e)}")
+                print(f"Raw response: {response_text}")
+                return {
+                    "plan_name": "Career Development Plan",
+                    "overview": response_text,
+                    "milestones": [
+                        {
+                            "name": "Initial Milestone",
+                            "timeframe": "1 month",
+                            "tasks": [
+                                {
+                                    "task": "Review and set goals",
+                                    "priority": "High",
+                                    "resources": "Career planning tools",
+                                    "success_criteria": "Clear goals defined"
+                                }
+                            ]
+                        }
+                    ],
+                    "success_metrics": ["Goal completion", "Skill improvement"],
+                    "potential_challenges": [
+                        {
+                            "challenge": "Time management",
+                            "solution": "Create a detailed schedule"
+                        }
+                    ]
+                }
         except Exception as e:
             print(f"Error generating action plan: {str(e)}")
             return None
@@ -235,19 +301,44 @@ class CareerCoach:
             }}
             """
             
-            response = openai.ChatCompletion.create(
-                model="gpt-3.5-turbo",
-                messages=[{
-                    "role": "system",
-                    "content": "You are an experienced career coach who provides constructive feedback."
-                }, {
-                    "role": "user",
-                    "content": prompt
-                }],
-                temperature=0.7
-            )
+            response = self.model.generate_content(prompt)
+            response_text = response.text.strip()
+            if response_text.startswith('```json'):
+                response_text = response_text[7:]
+            if response_text.endswith('```'):
+                response_text = response_text[:-3]
+            response_text = response_text.strip()
             
-            return json.loads(response.choices[0].message.content)
+            try:
+                return json.loads(response_text)
+            except json.JSONDecodeError as e:
+                print(f"JSON parsing error: {str(e)}")
+                print(f"Raw response: {response_text}")
+                return {
+                    "overall_assessment": response_text,
+                    "key_observations": [
+                        {
+                            "observation": "Progress tracking",
+                            "impact": "Positive",
+                            "recommendation": "Continue current approach"
+                        }
+                    ],
+                    "strengths": [
+                        {
+                            "strength": "Dedication",
+                            "how_to_leverage": "Maintain consistent effort"
+                        }
+                    ],
+                    "improvement_areas": [
+                        {
+                            "area": "Time management",
+                            "why_important": "Efficiency",
+                            "how_to_improve": "Create detailed schedule"
+                        }
+                    ],
+                    "next_steps": ["Review feedback", "Update goals"],
+                    "motivation": "Keep up the great work!"
+                }
         except Exception as e:
             print(f"Error generating progress feedback: {str(e)}")
             return None

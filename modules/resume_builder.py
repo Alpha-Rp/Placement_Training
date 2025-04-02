@@ -1,4 +1,4 @@
-import openai
+import google.generativeai as genai
 from typing import Dict, List, Optional, Any
 import json
 from datetime import datetime
@@ -11,9 +11,32 @@ from io import BytesIO
 
 class ATSResumeBuilder:
     def __init__(self, api_key: str):
-        """Initialize the resume builder with OpenAI API key."""
+        """Initialize the resume builder with Gemini API key."""
+        if not api_key:
+            raise ValueError("Gemini API key is required")
         self.api_key = api_key
-        openai.api_key = api_key
+        genai.configure(api_key=self.api_key)
+        self.model = genai.GenerativeModel('gemini-1.5-flash')
+    
+    def _clean_response(self, response_text: str) -> str:
+        """Clean the response text to ensure valid JSON."""
+        response_text = response_text.strip()
+        if response_text.startswith('```json'):
+            response_text = response_text[7:]
+        if response_text.endswith('```'):
+            response_text = response_text[:-3]
+        response_text = response_text.strip()
+        return response_text
+    
+    def _parse_json_response(self, response_text: str, default_value: Any = None) -> Any:
+        """Parse JSON response with error handling."""
+        try:
+            cleaned_text = self._clean_response(response_text)
+            return json.loads(cleaned_text)
+        except json.JSONDecodeError as e:
+            print(f"JSON parsing error: {str(e)}")
+            print(f"Raw response: {response_text}")
+            return default_value
     
     def enhance_user_input(self, basic_input: Dict[str, Any]) -> Dict[str, Any]:
         """Enhance basic user input with AI-generated content."""
@@ -47,94 +70,64 @@ class ATSResumeBuilder:
             If target job is provided, tailor the summary specifically for that role.
             """
 
-            response = openai.ChatCompletion.create(
-                model="gpt-4",
-                messages=[{
-                    "role": "system",
-                    "content": "You are an expert resume writer specializing in creating powerful professional summaries that get attention."
-                }, {
-                    "role": "user",
-                    "content": prompt
-                }],
-                temperature=0.7
-            )
-
-            professional_summary = response.choices[0].message.content.strip()
+            response = self.model.generate_content(prompt)
+            professional_summary = response.text.strip()
             
             # Enhance achievements in work experience
             enhanced_experience = []
             for exp in work_exp:
-                achievements = exp.get("achievements", [])
-                if achievements:
-                    prompt = f"""
-                    Enhance these work achievements to be more impactful and quantifiable:
-                    {json.dumps(achievements)}
-                    
-                    For each achievement:
-                    1. Start with a powerful action verb
-                    2. Include specific metrics and numbers
-                    3. Highlight direct impact and results
-                    4. Use industry-relevant keywords
-                    5. Focus on contributions and value added
-                    
-                    Target Job: {json.dumps(target_job)}
-                    
-                    Return the enhanced achievements as a JSON array of strings.
-                    """
-                    
-                    response = openai.ChatCompletion.create(
-                        model="gpt-4",
-                        messages=[{
-                            "role": "system",
-                            "content": "You are an expert in writing powerful resume achievements that demonstrate impact and value."
-                        }, {
-                            "role": "user",
-                            "content": prompt
-                        }],
-                        temperature=0.7
-                    )
-                    
-                    enhanced_achievements = json.loads(response.choices[0].message.content)
-                    exp["achievements"] = enhanced_achievements
+                achievements_prompt = f"""
+                Enhance these work achievements for a resume:
+                {json.dumps(exp.get('achievements', []))}
                 
-                enhanced_experience.append(exp)
-            
-            # Generate project suggestions if none provided
-            projects = []
-            if not basic_input.get("projects") and skills:
-                prompt = f"""
-                Suggest 2-3 impressive projects based on these skills and target job:
-                Skills: {', '.join(skills)}
-                Target Job: {json.dumps(target_job)}
+                Make them more impactful by:
+                1. Adding quantifiable results
+                2. Using strong action verbs
+                3. Highlighting leadership and initiative
+                4. Including relevant metrics
+                5. Emphasizing business impact
                 
-                Each project should:
-                1. Demonstrate technical expertise
-                2. Show problem-solving abilities
-                3. Align with career goals
-                4. Include measurable outcomes
-                
-                Return as JSON array with format:
-                [{{
-                    "name": "Project Name",
-                    "description": "Compelling description",
-                    "technologies": ["tech1", "tech2"],
-                    "highlights": ["achievement1", "achievement2"]
-                }}]
+                Return as a JSON array of enhanced achievements.
                 """
                 
-                response = openai.ChatCompletion.create(
-                    model="gpt-4",
-                    messages=[{
-                        "role": "system",
-                        "content": "You are an expert in creating impressive technical project portfolios."
-                    }, {
-                        "role": "user",
-                        "content": prompt
-                    }],
-                    temperature=0.7
-                )
+                try:
+                    achievements_response = self.model.generate_content(achievements_prompt)
+                    enhanced_achievements = self._parse_json_response(
+                        achievements_response.text,
+                        exp.get('achievements', [])
+                    )
+                except Exception as e:
+                    print(f"Error enhancing achievements: {str(e)}")
+                    enhanced_achievements = exp.get('achievements', [])
                 
-                projects = json.loads(response.choices[0].message.content)
+                enhanced_exp = exp.copy()
+                enhanced_exp['achievements'] = enhanced_achievements
+                enhanced_experience.append(enhanced_exp)
+            
+            # Enhance projects
+            projects_prompt = f"""
+            Enhance these technical projects for a resume:
+            {json.dumps(basic_input.get('projects', []))}
+            
+            Make them more impressive by:
+            1. Adding technical complexity
+            2. Including measurable outcomes
+            3. Highlighting innovative solutions
+            4. Emphasizing scalability
+            5. Adding relevant technologies
+            
+            Return as a JSON array of enhanced projects.
+            """
+            
+            try:
+                projects_response = self.model.generate_content(projects_prompt)
+                projects = self._parse_json_response(
+                    projects_response.text,
+                    basic_input.get('projects', [])
+                )
+            except Exception as e:
+                print(f"Error enhancing projects: {str(e)}")
+                projects = basic_input.get('projects', [])
             
             # Create the enhanced content structure
             enhanced_content = {
@@ -451,106 +444,106 @@ class ATSResumeBuilder:
             Return as JSON with categories as keys and skill arrays as values.
             """
             
-            skills_response = openai.ChatCompletion.create(
-                model="gpt-4",
-                messages=[{
-                    "role": "system",
-                    "content": "You are a Microsoft technical recruiter expert in organizing skills for maximum impact."
-                }, {
-                    "role": "user",
-                    "content": skills_prompt
-                }],
-                temperature=0.7
-            )
+            try:
+                skills_response = self.model.generate_content(skills_prompt)
+                skills_text = skills_response.text.strip()
+                if skills_text.startswith('```json'):
+                    skills_text = skills_text[7:]
+                if skills_text.endswith('```'):
+                    skills_text = skills_text[:-3]
+                skills_text = skills_text.strip()
+                
+                enhanced_skills = json.loads(skills_text)
+            except Exception as e:
+                print(f"Error enhancing skills: {str(e)}")
+                enhanced_skills = basic_info.get('skills', {})
             
-            enhanced_skills = json.loads(skills_response.choices[0].message.content)
+            # Enhance projects
+            projects_prompt = f"""
+            Enhance these projects for a Microsoft resume:
+            {json.dumps(basic_info.get('projects', []))}
             
-            # Generate certifications suggestions
+            Make them more relevant by:
+            1. Adding Microsoft technologies
+            2. Emphasizing cloud experience
+            3. Highlighting enterprise solutions
+            4. Including scalability aspects
+            5. Adding relevant metrics
+            
+            Return as a JSON array of enhanced projects.
+            """
+            
+            try:
+                projects_response = self.model.generate_content(projects_prompt)
+                projects_text = projects_response.text.strip()
+                if projects_text.startswith('```json'):
+                    projects_text = projects_text[7:]
+                if projects_text.endswith('```'):
+                    projects_text = projects_text[:-3]
+                projects_text = projects_text.strip()
+                
+                enhanced_projects = json.loads(projects_text)
+            except Exception as e:
+                print(f"Error enhancing projects: {str(e)}")
+                enhanced_projects = basic_info.get('projects', [])
+            
+            # Generate Microsoft-specific certifications
             cert_prompt = f"""
-            Suggest relevant Microsoft certifications based on these skills:
-            {json.dumps(enhanced_skills)}
+            Suggest relevant Microsoft certifications for this profile:
+            Skills: {json.dumps(enhanced_skills)}
+            Experience: {json.dumps(basic_info.get('work_experience', []))}
             
             Include:
-            1. Most relevant certification path
-            2. Complementary certifications
-            3. Future certification goals
+            1. Azure certifications
+            2. Development certifications
+            3. Cloud certifications
+            4. Security certifications
             
-            Return as JSON array of certification objects with name, status (completed/recommended), and relevance score.
+            Return as a JSON array of certification names.
             """
             
-            cert_response = openai.ChatCompletion.create(
-                model="gpt-4",
-                messages=[{
-                    "role": "system",
-                    "content": "You are a Microsoft certification expert."
-                }, {
-                    "role": "user",
-                    "content": cert_prompt
-                }],
-                temperature=0.7
-            )
+            try:
+                cert_response = self.model.generate_content(cert_prompt)
+                cert_text = cert_response.text.strip()
+                if cert_text.startswith('```json'):
+                    cert_text = cert_text[7:]
+                if cert_text.endswith('```'):
+                    cert_text = cert_text[:-3]
+                cert_text = cert_text.strip()
+                
+                suggested_certs = json.loads(cert_text)
+            except Exception as e:
+                print(f"Error generating certifications: {str(e)}")
+                suggested_certs = []
             
-            suggested_certs = json.loads(cert_response.choices[0].message.content)
-            
-            # Enhance or generate projects
-            projects_prompt = f"""
-            Create or enhance projects showcasing Microsoft-relevant skills:
-            Skills: {json.dumps(enhanced_skills)}
-            
-            Each project should:
-            1. Demonstrate scalability and enterprise-level thinking
-            2. Show collaboration and version control
-            3. Include cloud components (preferably Azure)
-            4. Feature modern development practices
-            5. Highlight problem-solving and innovation
-            
-            Return as JSON array of detailed project objects.
-            """
-            
-            projects_response = openai.ChatCompletion.create(
-                model="gpt-4",
-                messages=[{
-                    "role": "system",
-                    "content": "You are a senior Microsoft engineer who mentors candidates on project portfolios."
-                }, {
-                    "role": "user",
-                    "content": projects_prompt
-                }],
-                temperature=0.7
-            )
-            
-            enhanced_projects = json.loads(projects_response.choices[0].message.content)
-            
-            # Generate professional achievements
+            # Enhance achievements
             achievements_prompt = f"""
-            Create impactful professional achievements based on:
-            Experience: {json.dumps(basic_info.get('work_experience', []))}
-            Skills: {json.dumps(enhanced_skills)}
+            Enhance these achievements for a Microsoft resume:
+            {json.dumps(basic_info.get('achievements', []))}
             
-            Focus on:
-            1. Leadership and initiative
-            2. Technical innovation
-            3. Project impact and scale
-            4. Collaboration and teamwork
-            5. Problem-solving
+            Make them more relevant by:
+            1. Adding Microsoft-specific impact
+            2. Highlighting cloud experience
+            3. Emphasizing enterprise solutions
+            4. Including scalability metrics
+            5. Adding innovation aspects
             
-            Use Microsoft's leadership principles and quantify results.
-            Return as JSON array of achievement strings.
+            Return as a JSON array of enhanced achievements.
             """
             
-            achievements_response = openai.ChatCompletion.create(
-                model="gpt-4",
-                messages=[{
-                    "role": "system",
-                    "content": "You are a Microsoft hiring manager who knows what achievements stand out."
-                }, {
-                    "role": "user",
-                    "content": achievements_prompt
-                }],
-                temperature=0.7
-            )
-            
-            enhanced_achievements = json.loads(achievements_response.choices[0].message.content)
+            try:
+                achievements_response = self.model.generate_content(achievements_prompt)
+                achievements_text = achievements_response.text.strip()
+                if achievements_text.startswith('```json'):
+                    achievements_text = achievements_text[7:]
+                if achievements_text.endswith('```'):
+                    achievements_text = achievements_text[:-3]
+                achievements_text = achievements_text.strip()
+                
+                enhanced_achievements = json.loads(achievements_text)
+            except Exception as e:
+                print(f"Error enhancing achievements: {str(e)}")
+                enhanced_achievements = basic_info.get('achievements', [])
             
             # Create final enhanced content
             enhanced_content = {
@@ -598,19 +591,15 @@ class ATSResumeBuilder:
         Create a compelling 3-4 sentence summary.
         """
         
-        response = openai.ChatCompletion.create(
-            model="gpt-4",
-            messages=[{
-                "role": "system",
-                "content": "You are a Microsoft recruiter who knows exactly what makes a summary stand out."
-            }, {
-                "role": "user",
-                "content": prompt
-            }],
-            temperature=0.7
-        )
+        response = self.model.generate_content(prompt)
+        response_text = response.text.strip()
+        if response_text.startswith('```json'):
+            response_text = response_text[7:]
+        if response_text.endswith('```'):
+            response_text = response_text[:-3]
+        response_text = response_text.strip()
         
-        return response.choices[0].message.content.strip()
+        return response_text
         
     def _enhance_work_experience(self, experience: List[Dict[str, Any]], skills: Dict[str, List[str]]) -> List[Dict[str, Any]]:
         """Enhance work experience with Microsoft-relevant achievements."""
@@ -632,19 +621,15 @@ class ATSResumeBuilder:
             Return as JSON array of enhanced achievement strings.
             """
             
-            response = openai.ChatCompletion.create(
-                model="gpt-4",
-                messages=[{
-                    "role": "system",
-                    "content": "You are a Microsoft hiring manager who knows what achievements matter most."
-                }, {
-                    "role": "user",
-                    "content": prompt
-                }],
-                temperature=0.7
-            )
+            response = self.model.generate_content(prompt)
+            response_text = response.text.strip()
+            if response_text.startswith('```json'):
+                response_text = response_text[7:]
+            if response_text.endswith('```'):
+                response_text = response_text[:-3]
+            response_text = response_text.strip()
             
-            enhanced_achievements = json.loads(response.choices[0].message.content)
+            enhanced_achievements = json.loads(response_text)
             exp["achievements"] = enhanced_achievements
             enhanced_experience.append(exp)
         
@@ -666,19 +651,15 @@ class ATSResumeBuilder:
         Return as JSON array of enhanced interest strings.
         """
         
-        response = openai.ChatCompletion.create(
-            model="gpt-4",
-            messages=[{
-                "role": "system",
-                "content": "You are a Microsoft culture expert who knows what interests resonate."
-            }, {
-                "role": "user",
-                "content": prompt
-            }],
-            temperature=0.7
-        )
+        response = self.model.generate_content(prompt)
+        response_text = response.text.strip()
+        if response_text.startswith('```json'):
+            response_text = response_text[7:]
+        if response_text.endswith('```'):
+            response_text = response_text[:-3]
+        response_text = response_text.strip()
         
-        return json.loads(response.choices[0].message.content)
+        return json.loads(response_text)
 
     def generate_universal_tech_resume(self, basic_info: Dict[str, Any], target_companies: List[str] = None) -> Dict[str, Any]:
         """Generate a resume optimized for top tech companies."""
@@ -707,120 +688,61 @@ class ATSResumeBuilder:
             """
             
             try:
-                skills_response = openai.ChatCompletion.create(
-                    model="gpt-4",
-                    messages=[{
-                        "role": "system",
-                        "content": "You are a technical recruiter expert in organizing skills for maximum impact."
-                    }, {
-                        "role": "user",
-                        "content": skills_prompt
-                    }],
-                    temperature=0.7
+                skills_response = self.model.generate_content(skills_prompt)
+                enhanced_skills = self._parse_json_response(
+                    skills_response.text,
+                    basic_info.get('skills', {})
                 )
-                
-                enhanced_skills = json.loads(skills_response.choices[0].message.content.strip())
             except Exception as e:
                 print(f"Error enhancing skills: {str(e)}")
                 enhanced_skills = basic_info.get('skills', {})
             
             # Enhance projects
             projects_prompt = f"""
-            Create or enhance projects showcasing skills for top tech companies:
-            Skills: {json.dumps(enhanced_skills)}
-            Companies: {json.dumps(target_companies)}
+            Enhance these projects for top tech companies:
+            {json.dumps(basic_info.get('projects', []))}
             
-            Format the response exactly like this example:
-            [
-                {{
-                    "name": "Project Name",
-                    "description": "Project description",
-                    "technologies": ["Tech1", "Tech2"],
-                    "highlights": ["Achievement 1", "Achievement 2"]
-                }}
-            ]
+            Make them more impressive by:
+            1. Adding technical complexity
+            2. Including measurable outcomes
+            3. Highlighting innovative solutions
+            4. Emphasizing scalability
+            5. Adding relevant technologies
+            
+            Return as a JSON array of enhanced projects.
             """
             
             try:
-                projects_response = openai.ChatCompletion.create(
-                    model="gpt-4",
-                    messages=[{
-                        "role": "system",
-                        "content": "You are a technical project expert who knows what top companies value."
-                    }, {
-                        "role": "user",
-                        "content": projects_prompt
-                    }],
-                    temperature=0.7
+                projects_response = self.model.generate_content(projects_prompt)
+                enhanced_projects = self._parse_json_response(
+                    projects_response.text,
+                    basic_info.get('projects', [])
                 )
-                
-                enhanced_projects = json.loads(projects_response.choices[0].message.content.strip())
             except Exception as e:
                 print(f"Error enhancing projects: {str(e)}")
                 enhanced_projects = basic_info.get('projects', [])
             
-            # Enhance achievements
-            achievements_prompt = f"""
-            Enhance these achievements for top tech companies:
-            {json.dumps(basic_info.get('achievements', []))}
-            
-            Format the response exactly like this example:
-            [
-                "Led a team of 5 engineers to deliver a microservices architecture that reduced latency by 40%",
-                "Implemented CI/CD pipeline reducing deployment time by 60%"
-            ]
-            """
-            
-            try:
-                achievements_response = openai.ChatCompletion.create(
-                    model="gpt-4",
-                    messages=[{
-                        "role": "system",
-                        "content": "You are a career coach who helps candidates showcase their best achievements."
-                    }, {
-                        "role": "user",
-                        "content": achievements_prompt
-                    }],
-                    temperature=0.7
-                )
-                
-                enhanced_achievements = json.loads(achievements_response.choices[0].message.content.strip())
-            except Exception as e:
-                print(f"Error enhancing achievements: {str(e)}")
-                enhanced_achievements = basic_info.get('achievements', [])
-            
-            # Generate certifications roadmap
+            # Generate certifications
             cert_prompt = f"""
-            Suggest certifications valued by top tech companies:
+            Suggest relevant certifications for top tech companies:
             Skills: {json.dumps(enhanced_skills)}
-            Companies: {json.dumps(target_companies)}
+            Experience: {json.dumps(basic_info.get('work_experience', []))}
             
-            Format the response exactly like this example:
-            [
-                {{
-                    "name": "AWS Solutions Architect",
-                    "issuer": "Amazon Web Services",
-                    "difficulty": "Advanced",
-                    "relevance_score": 9,
-                    "target_companies": ["Amazon", "Google", "Microsoft"]
-                }}
-            ]
+            Include:
+            1. Cloud certifications
+            2. Development certifications
+            3. Security certifications
+            4. Architecture certifications
+            
+            Return as a JSON array of certification names.
             """
             
             try:
-                cert_response = openai.ChatCompletion.create(
-                    model="gpt-4",
-                    messages=[{
-                        "role": "system",
-                        "content": "You are a technical certification expert who knows what top companies value."
-                    }, {
-                        "role": "user",
-                        "content": cert_prompt
-                    }],
-                    temperature=0.7
+                cert_response = self.model.generate_content(cert_prompt)
+                suggested_certs = self._parse_json_response(
+                    cert_response.text,
+                    []
                 )
-                
-                suggested_certs = json.loads(cert_response.choices[0].message.content.strip())
             except Exception as e:
                 print(f"Error generating certifications: {str(e)}")
                 suggested_certs = []
@@ -842,6 +764,19 @@ class ATSResumeBuilder:
             except Exception as e:
                 print(f"Error enhancing experience: {str(e)}")
                 enhanced_experience = basic_info.get('work_experience', [])
+            
+            # Enhance achievements
+            try:
+                achievements_response = self.model.generate_content(
+                    f"Enhance these achievements for tech companies: {json.dumps(basic_info.get('achievements', []))}"
+                )
+                enhanced_achievements = self._parse_json_response(
+                    achievements_response.text,
+                    basic_info.get('achievements', [])
+                )
+            except Exception as e:
+                print(f"Error enhancing achievements: {str(e)}")
+                enhanced_achievements = basic_info.get('achievements', [])
             
             # Create final enhanced content
             enhanced_content = {
@@ -902,19 +837,15 @@ class ATSResumeBuilder:
         Create a 3-4 sentence summary that would impress any tech company.
         """
         
-        response = openai.ChatCompletion.create(
-            model="gpt-4",
-            messages=[{
-                "role": "system",
-                "content": "You are an expert resume writer who knows how to write summaries that catch any recruiter's attention."
-            }, {
-                "role": "user",
-                "content": prompt
-            }],
-            temperature=0.7
-        )
+        response = self.model.generate_content(prompt)
+        response_text = response.text.strip()
+        if response_text.startswith('```json'):
+            response_text = response_text[7:]
+        if response_text.endswith('```'):
+            response_text = response_text[:-3]
+        response_text = response_text.strip()
         
-        return response.choices[0].message.content.strip()
+        return response_text
     
     def _enhance_universal_experience(
         self,
@@ -943,19 +874,15 @@ class ATSResumeBuilder:
             Return as JSON array of enhanced achievement strings.
             """
             
-            response = openai.ChatCompletion.create(
-                model="gpt-4",
-                messages=[{
-                    "role": "system",
-                    "content": "You are a career coach who knows how to write achievements that impress any tech company."
-                }, {
-                    "role": "user",
-                    "content": prompt
-                }],
-                temperature=0.7
-            )
+            response = self.model.generate_content(prompt)
+            response_text = response.text.strip()
+            if response_text.startswith('```json'):
+                response_text = response_text[7:]
+            if response_text.endswith('```'):
+                response_text = response_text[:-3]
+            response_text = response_text.strip()
             
-            enhanced_achievements = json.loads(response.choices[0].message.content)
+            enhanced_achievements = json.loads(response_text)
             exp["achievements"] = enhanced_achievements
             enhanced_experience.append(exp)
         
@@ -983,19 +910,15 @@ class ATSResumeBuilder:
         Return as JSON array of enhanced interest strings.
         """
         
-        response = openai.ChatCompletion.create(
-            model="gpt-4",
-            messages=[{
-                "role": "system",
-                "content": "You are a culture fit expert who knows what interests resonate with tech companies."
-            }, {
-                "role": "user",
-                "content": prompt
-            }],
-            temperature=0.7
-        )
+        response = self.model.generate_content(prompt)
+        response_text = response.text.strip()
+        if response_text.startswith('```json'):
+            response_text = response_text[7:]
+        if response_text.endswith('```'):
+            response_text = response_text[:-3]
+        response_text = response_text.strip()
         
-        return json.loads(response.choices[0].message.content)
+        return json.loads(response_text)
 
     def generate_resume_pdf(self, content: Dict[str, Any], output_path: str) -> None:
         """Generate a professional PDF resume."""

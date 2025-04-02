@@ -194,8 +194,8 @@ load_dotenv()
 if 'page' not in st.session_state:
     st.session_state.page = 'Home'
     st.session_state.resume_builder = ATSResumeBuilder(os.getenv('OPENAI_API_KEY'))
-    st.session_state.career_coach = CareerCoach(os.getenv('OPENAI_API_KEY'))
-    st.session_state.interview_game = InterviewGame(os.getenv('OPENAI_API_KEY'))
+    st.session_state.career_coach = CareerCoach(os.getenv('GEMINI_API_KEY'))
+    st.session_state.interview_game = InterviewGame(os.getenv('GEMINI_API_KEY'))
     st.session_state.career_predictor = CareerGrowthPredictor(os.getenv('OPENAI_API_KEY'))
     st.session_state.growth_map = GrowthMapGenerator(os.getenv('OPENAI_API_KEY'))
     st.session_state.chronological_engine = ChronologicalArbitrageEngine()
@@ -256,20 +256,23 @@ if 'page' not in st.session_state:
     }
 
 # Initialize components
-api_key = os.getenv("OPENAI_API_KEY")
-if api_key:
-    resume_builder = ATSResumeBuilder(api_key)
-    career_coach = CareerCoach(api_key)
-    interview_game = InterviewGame(api_key)
-    career_growth_predictor = CareerGrowthPredictor(api_key)
+openai_api_key = os.getenv("OPENAI_API_KEY")
+gemini_api_key = os.getenv("GEMINI_API_KEY")
+
+if openai_api_key and gemini_api_key:
+    resume_builder = ATSResumeBuilder(openai_api_key)
+    career_coach = CareerCoach(gemini_api_key)
+    interview_game = InterviewGame(gemini_api_key)
+    career_growth_predictor = CareerGrowthPredictor(openai_api_key)
+    growth_map = GrowthMapGenerator(openai_api_key)
 else:
-    st.error("⚠️ OpenAI API key not found. Please check your .env file.")
+    st.error("⚠️ API keys not found. Please check your .env file.")
     st.stop()
 
 # Configure Streamlit page
 st.set_page_config(
-    page_title="Future You Predictor",
-    page_icon="🔮",
+    page_title="CodeRed - Your AI Career Development Platform",
+    page_icon="🚀",
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -277,24 +280,61 @@ st.set_page_config(
 # Custom CSS for cards
 st.markdown("""
 <style>
-.game-card {
-    background-color: #2c2c2c;
-    border-radius: 10px;
-    padding: 20px;
-    margin: 10px 0;
-    border: 1px solid #3c3c3c;
+.feature-card {
+    background-color: #1E1E1E;
+    border-radius: 15px;
+    padding: 25px;
+    margin: 15px 0;
+    border: 1px solid #2C2C2C;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     transition: all 0.3s ease;
 }
 
-.game-card:hover {
+.feature-card:hover {
     transform: translateY(-5px);
     box-shadow: 0 8px 15px rgba(0, 0, 0, 0.2);
-    background-color: #363636;
-    border-color: #4c4c4c;
+    background-color: #2C2C2C;
+    border-color: #3C3C3C;
 }
 
-/* Custom button styling */
+.feature-icon {
+    font-size: 2.5rem;
+    margin-bottom: 15px;
+    color: #00b4c4;
+}
+
+.feature-title {
+    color: #00b4c4;
+    font-size: 1.5rem;
+    margin-bottom: 10px;
+}
+
+.feature-description {
+    color: #B4C7ED;
+    font-size: 1rem;
+    line-height: 1.6;
+}
+
+.feature-list {
+    list-style-type: none;
+    padding-left: 0;
+    margin-top: 15px;
+}
+
+.feature-list li {
+    color: #8892B0;
+    margin-bottom: 8px;
+    padding-left: 25px;
+    position: relative;
+}
+
+.feature-list li:before {
+    content: "•";
+    color: #00b4c4;
+    position: absolute;
+    left: 0;
+}
+
 .stButton > button {
     background-color: #2c2c2c;
     color: white;
@@ -315,38 +355,103 @@ st.markdown("""
 st.sidebar.title("Navigation")
 selected_page = st.sidebar.selectbox(
     "Choose a feature",
-    ["Home","Time Dilation Training"]
+    ["Home","Resume Builder","Resume Analysis","PDF Viewer","Career Coach","Interview Game","Time Dilation Training", "Chronological Arbitrage", "AI Interviewer","Learning Playlist"]
 )
 
 # Main content
 if selected_page == "Home":
-    st.title("Welcome to Future You Predictor")
     st.markdown("""
-    ### Your AI-Powered Interview Preparation Partner
-    
-    Welcome to Future You Predictor, your comprehensive interview preparation platform. Here's what you can do:
-    
- 
-    
-    #### 🌀 Time Dilation Training
-    - Train your mind to perceive and manage interview time better
-    - Practice with neural entrainment patterns
-    - Develop deep flow states for optimal performance
-    - Master time perception techniques for complex questions
-    
-    
-    
-   
-    
-    Get started by selecting a feature from the navigation menu on the left!
-    """)
+    <div style='text-align: center; padding: 2rem 0;'>
+        <h1 style='color: #00b4c4; font-size: 3rem; margin-bottom: 1rem;'>CodeRed</h1>
+        <p style='color: #B4C7ED; font-size: 1.5rem;'>Your AI-Powered Career Development Platform</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.markdown("""
+    <div style='text-align: center; margin-bottom: 2rem;'>
+        <p style='color: #8892B0; font-size: 1.2rem;'>
+            Transform your career journey with our comprehensive suite of AI-powered tools designed to help you excel in your professional development.
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # Create two columns for feature cards
+    col1, col2 = st.columns(2)
+
+    # Resume Tools Section
+    with col1:
+        st.markdown("""
+        <div class="feature-card">
+            <div class="feature-icon">📄</div>
+            <div class="feature-title">Resume Tools</div>
+            <div class="feature-description">Create and analyze professional resumes with AI assistance</div>
+            <ul class="feature-list">
+                <li>Build ATS-friendly resumes</li>
+                <li>Get detailed career insights</li>
+                <li>Calculate your Potential Quotient</li>
+                <li>Receive personalized recommendations</li>
+            </ul>
+        </div>
+        """, unsafe_allow_html=True)
+
+        st.markdown("""
+        <div class="feature-card">
+            <div class="feature-icon">🎮</div>
+            <div class="feature-title">Interview Preparation</div>
+            <div class="feature-description">Master your interview skills with interactive games</div>
+            <ul class="feature-list">
+                <li>Practice with AI-powered mock interviews</li>
+                <li>Engage in coding challenges</li>
+                <li>Solve real-world scenarios</li>
+                <li>Get instant feedback</li>
+            </ul>
+        </div>
+        """, unsafe_allow_html=True)
+
+    # Career Development Section
+    with col2:
+        st.markdown("""
+        <div class="feature-card">
+            <div class="feature-icon">👨‍🏫</div>
+            <div class="feature-title">Career Development</div>
+            <div class="feature-description">Get personalized guidance for your career growth</div>
+            <ul class="feature-list">
+                <li>Personal career coaching</li>
+                <li>Customized learning playlists</li>
+                <li>Progress tracking</li>
+                <li>Skill development plans</li>
+            </ul>
+        </div>
+        """, unsafe_allow_html=True)
+
+        st.markdown("""
+        <div class="feature-card">
+            <div class="feature-icon">⚡</div>
+            <div class="feature-title">Advanced Training</div>
+            <div class="feature-description">Enhance your cognitive abilities with specialized training</div>
+            <ul class="feature-list">
+                <li>Time dilation exercises</li>
+                <li>Chronological arbitrage training</li>
+                <li>Neural pattern recognition</li>
+                <li>Flow state development</li>
+            </ul>
+        </div>
+        """, unsafe_allow_html=True)
+
+    # Call to Action
+    st.markdown("""
+    <div style='text-align: center; margin-top: 2rem; padding: 2rem; background-color: #1E1E1E; border-radius: 15px;'>
+        <h2 style='color: #00b4c4; margin-bottom: 1rem;'>Ready to Transform Your Career?</h2>
+        <p style='color: #B4C7ED; margin-bottom: 1.5rem;'>Choose a feature from the navigation menu to get started!</p>
+    </div>
+    """, unsafe_allow_html=True)
 
 elif selected_page == "Resume Builder":
     st.title("🎯 Smart Resume Builder")
     st.write("Create an ATS-optimized resume that stands out to top tech companies")
     
     # Initialize resume builder with API key from environment variable
-    api_key = os.getenv("OPENAI_API_KEY")
+    api_key = os.getenv("GEMINI_API_KEY")
     if not api_key:
         st.error("⚠️ OpenAI API key not found. Please check your .env file.")
         st.stop()
@@ -2543,6 +2648,113 @@ elif selected_page == "Time Dilation Training":
         st.write("## 🌀 Time Dilation Training")
         st.write("Train your mind to perceive time differently during interviews.")
         
+        # Initialize tutorial state if not exists
+        if 'tutorial_completed' not in st.session_state:
+            st.session_state.tutorial_completed = False
+        if 'tutorial_step' not in st.session_state:
+            st.session_state.tutorial_step = 0
+        
+        # Show tutorial for first-time users
+        if not st.session_state.tutorial_completed:
+            tutorial_steps = [
+                {
+                    "title": "Welcome to Time Dilation Training! 👋",
+                    "content": """
+                    This powerful tool will help you master the perception of time during interviews.
+                    Let me guide you through the key features and how to use them effectively.
+                    """,
+                    "image": None
+                },
+                {
+                    "title": "Training Modes 🎯",
+                    "content": """
+                    We offer four specialized training modes:
+                    - **Standard**: Perfect for beginners
+                    - **Speed Focus**: Enhances quick thinking
+                    - **Deep Flow**: Maximizes flow state
+                    - **Time Compression**: Advanced time dilation
+                    
+                    Choose the one that best matches your current needs.
+                    """,
+                    "image": None
+                },
+                {
+                    "title": "Neural Patterns 🧠",
+                    "content": """
+                    The colorful waves you see are neural frequency patterns.
+                    They help synchronize your brain waves for optimal performance.
+                    
+                    Watch how they flow and let your mind follow their rhythm.
+                    """,
+                    "image": None
+                },
+                {
+                    "title": "Time Crystal 💎",
+                    "content": """
+                    The Time Crystal is an advanced visualization tool.
+                    It helps you understand and manipulate your perception of time.
+                    
+                    Try generating different crystals to find your perfect pattern.
+                    """,
+                    "image": None
+                },
+                {
+                    "title": "Progress Tracking 📈",
+                    "content": """
+                    Your progress is tracked across multiple metrics:
+                    - Flow State
+                    - Neural Coherence
+                    - Reality Stability
+                    - Time Dilation Factor
+                    
+                    Watch these metrics improve as you practice!
+                    """,
+                    "image": None
+                }
+            ]
+            
+            current_step = tutorial_steps[st.session_state.tutorial_step]
+            
+            # Display tutorial content in a custom container
+            st.markdown(
+                f"""
+                <div style='background-color: rgba(78,205,196,0.1); 
+                           padding: 2rem; 
+                           border-radius: 1rem; 
+                           border: 1px solid rgba(78,205,196,0.2);
+                           margin-bottom: 2rem;'>
+                    <h3 style='color: #4ECDC4;'>{current_step["title"]}</h3>
+                    {current_step["content"]}
+                </div>
+                """, 
+                unsafe_allow_html=True
+            )
+            
+            # Tutorial navigation
+            col1, col2, col3 = st.columns([1, 2, 1])
+            
+            # Progress bar and step counter
+            with col2:
+                st.progress((st.session_state.tutorial_step) / (len(tutorial_steps) - 1))
+                st.write(f"Step {st.session_state.tutorial_step + 1} of {len(tutorial_steps)}")
+            
+            # Navigation buttons
+            with col1:
+                if st.session_state.tutorial_step > 0:
+                    if st.button("◀️ Previous", key="prev_tutorial"):
+                        st.session_state.tutorial_step -= 1
+                        st.rerun()
+            
+            with col3:
+                if st.session_state.tutorial_step < len(tutorial_steps) - 1:
+                    if st.button("Next ▶️", key="next_tutorial"):
+                        st.session_state.tutorial_step += 1
+                        st.rerun()
+                else:
+                    if st.button("Start Training 🚀", key="start_training"):
+                        st.session_state.tutorial_completed = True
+                        st.rerun()
+        
         # Initialize all session state variables
         if 'consciousness_state' not in st.session_state:
             st.session_state.consciousness_state = {
@@ -2579,6 +2791,11 @@ elif selected_page == "Time Dilation Training":
         # Create tabs for different training modes
         tab1, tab2, tab3, tab4 = st.tabs(["🎯 Basic Training", "🌊 Flow State", "💎 Time Crystal", "🔄 Advanced Modes"])
         
+        # Add demo mode toggle
+        demo_col1, demo_col2 = st.columns([3, 1])
+        with demo_col2:
+            demo_mode = st.toggle("🎮 Demo Mode", help="Toggle demo mode for quick visualization of features")
+        
         with tab1:
             col1, col2, col3 = st.columns(3)
             with col1:
@@ -2591,479 +2808,267 @@ elif selected_page == "Time Dilation Training":
             # Training Interface
             st.write("### 🎯 Training Session")
             
-            # Training mode selection
-            if not st.session_state.training_active:
-                mode = st.selectbox(
-                    "Select Training Mode",
-                    ["Standard", "Speed Focus", "Deep Flow", "Time Compression"],
-                    help="""
-                    Standard: Balanced training for beginners
-                    Speed Focus: Emphasis on quick thinking and rapid responses
-                    Deep Flow: Extended sessions for deeper flow states
-                    Time Compression: Advanced time dilation training
-                    """
-                )
+            if demo_mode:
+                # Quick demo visualization
+                st.info("🎮 Demo Mode: Experience accelerated time dilation training")
                 
-                duration = st.slider(
-                    "Session Duration (minutes)",
-                    min_value=1,
-                    max_value=30,
-                    value=5,
-                    help="Choose your session duration. Start with shorter sessions and gradually increase."
-                )
-                
-                if st.button("Start Time Dilation Training"):
-                    st.session_state.training_active = True
-                    st.session_state.training_start_time = time.time()
-                    st.session_state.current_session = st.session_state.time_dilation_system.train_time_perception(
-                        mode=mode,
-                        duration=duration * 60
+                # Demo training options
+                demo_col1, demo_col2 = st.columns(2)
+                with demo_col1:
+                    demo_mode_type = st.selectbox(
+                        "Training Type",
+                        ["Speed Focus", "Deep Flow", "Time Compression"],
+                        help="Choose your training mode for the demo"
                     )
-                    st.session_state.neural_pattern = st.session_state.time_dilation_system.generate_neural_pattern(
-                        mode=mode
-                    )
-                    st.rerun()
-            
-            # Display active training session
-            if st.session_state.training_active and st.session_state.training_start_time is not None:
-                elapsed_time = time.time() - st.session_state.training_start_time
+                with demo_col2:
+                    demo_duration = st.slider("Demo Duration (seconds)", 10, 60, 30)
                 
-                # Progress bar
-                progress = min(1.0, elapsed_time / st.session_state.current_session["expected_duration"])
-                st.progress(progress)
-                st.write(f"Session Time: {elapsed_time:.1f}s")
-                
-                # Display exercise details
-                st.write("#### 🧠 Current Exercise")
-                st.info(st.session_state.current_session["exercise"]["prompt"])
-                
-                # Neural pattern visualization with animation
-                st.write("#### 🧬 Neural Entrainment Pattern")
-                pattern = st.session_state.neural_pattern
-                
-                # Generate and play binaural beats first
-                audio_data = st.session_state.time_dilation_system.apply_neural_pattern(pattern)
-                
-                # Save audio to a temporary file
-                temp_audio_path = "temp_neural_pattern.wav"
-                wavfile.write(temp_audio_path, 44100, audio_data.astype(np.float32))
-                
-                # Create audio player
-                with open(temp_audio_path, 'rb') as audio_file:
-                    audio_bytes = audio_file.read()
-                    audio_player = st.audio(audio_bytes, format='audio/wav')
-
-                # Create dynamic visualization
-                fig = go.Figure()
-
-                # Time points for x-axis (60 seconds)
-                time_points = np.linspace(0, 60, 300)
-                
-                # Colors and styles for different wave types
-                wave_styles = {
-                    'theta': {'color': '#FF6B6B', 'dash': 'solid'},     # Coral red
-                    'alpha': {'color': '#4ECDC4', 'dash': 'solid'},     # Turquoise
-                    'beta': {'color': '#45B7D1', 'dash': 'solid'},      # Sky blue
-                    'gamma': {'color': '#96CEB4', 'dash': 'solid'}      # Sage green
-                }
-
-                # Add traces and frames for animation
-                frames = []
-                for t_idx, t in enumerate(time_points):
-                    frame_data = []
+                # Start demo training button
+                if st.button("Begin Demo Training 🚀"):
+                    st.session_state.demo_training_active = True
+                    st.session_state.demo_start_time = time.time()
                     
-                    for wave_name, freq in pattern["frequencies"].items():
-                        # Calculate dynamic frequency with phase offset
-                        phase = list(pattern["frequencies"].keys()).index(wave_name) * np.pi/3
-                        y_vals = []
-                        
-                        for time_point in time_points:
-                            if time_point <= t:
-                                y = freq + freq * 0.15 * np.sin(2 * np.pi * 0.5 * time_point + phase)
-                                y_vals.append(y)
-                            else:
-                                y_vals.append(None)
-                        
-                        # Add trace to frame
-                        frame_data.append(
+                # Show demo training interface
+                if hasattr(st.session_state, 'demo_training_active') and st.session_state.demo_training_active:
+                    elapsed_time = time.time() - st.session_state.demo_start_time
+                    demo_progress = min(1.0, elapsed_time / demo_duration)
+                    
+                    # Dynamic metrics based on mode
+                    metrics_col1, metrics_col2, metrics_col3, metrics_col4 = st.columns(4)
+                    
+                    with metrics_col1:
+                        flow = demo_progress * 1.2  # Slightly over 100% for effect
+                        st.metric("Flow State", f"{min(100, flow*100):.0f}%", 
+                                delta=f"+{min(100, flow*100):.0f}%")
+                    
+                    with metrics_col2:
+                        coherence = demo_progress * 1.1
+                        st.metric("Neural Coherence", f"{min(100, coherence*100):.0f}%", 
+                                delta=f"+{min(100, coherence*100):.0f}%")
+                    
+                    with metrics_col3:
+                        stability = (flow + coherence) / 2
+                        st.metric("Reality Stability", f"{min(100, stability*100):.0f}%", 
+                                delta=f"+{min(100, stability*100):.0f}%")
+                    
+                    with metrics_col4:
+                        dilation = 1.0 + (stability * 1.5)
+                        st.metric("Time Dilation", f"{dilation:.1f}x", 
+                                delta=f"+{(dilation-1)*100:.0f}%")
+
+                    # Progress bar with remaining time
+                    st.progress(demo_progress)
+                    remaining = max(0, demo_duration - elapsed_time)
+                    st.write(f"⏱️ Time Remaining: {int(remaining)}s")
+                    
+                    # Generate and play binaural beats
+                    if demo_mode_type == "Speed Focus":
+                        frequencies = {'alpha': 12.0, 'beta': 20.0, 'gamma': 35.0}
+                        modulation = {"amplitude": 0.2, "frequency": 0.5}
+                    elif demo_mode_type == "Deep Flow":
+                        frequencies = {
+                            'Theta Wave (4-8 Hz)': 6.0,   # Deep meditation & intuition
+                            'Alpha Wave (8-12 Hz)': 10.0,  # Relaxed focus & clarity
+                            'Beta Wave (12-30 Hz)': 15.0,  # Active thinking
+                            'Gamma Wave (30-100 Hz)': 35.0 # Peak performance
+                        }
+                        modulation = {"amplitude": 0.15, "frequency": 0.3}
+                    else:  # Time Compression
+                        frequencies = {'alpha': 11.0, 'beta': 18.0, 'gamma': 30.0}
+                        modulation = {"amplitude": 0.25, "frequency": 0.4}
+                    
+                    pattern = {
+                        "frequencies": frequencies,
+                        "modulation": modulation,
+                        "phase_shifts": [i * np.pi / len(frequencies) for i in range(len(frequencies))],
+                        "timestamp": time.time()
+                    }
+                    
+                    # Neural Pattern Visualization
+                    st.write("### 🧠 Neural Frequency Patterns")
+                    time_points = np.linspace(0, 5, 250)  # 5 seconds for clearer view
+                    fig = go.Figure()
+                    
+                    # Improved wave styles with better visibility
+                    wave_styles = {
+                        'alpha': {'color': '#FF6B6B', 'width': 3},
+                        'beta': {'color': '#4ECDC4', 'width': 2.5},
+                        'gamma': {'color': '#45B7D1', 'width': 2},
+                        'theta': {'color': '#96CEB4', 'width': 3}
+                    }
+                    
+                    # Add waves with vertical offset for better visibility
+                    for i, (wave_name, freq) in enumerate(pattern["frequencies"].items()):
+                        offset = i * 2  # Vertical spacing between waves
+                        y_vals = np.sin(2 * np.pi * freq * time_points) + offset
+                        fig.add_trace(
                             go.Scatter(
                                 x=time_points,
                                 y=y_vals,
                                 mode='lines',
                                 line=dict(
-                                    width=3,
-                                    color=wave_styles[wave_name.lower()]['color'],
-                                    dash=wave_styles[wave_name.lower()]['dash']
+                                    width=wave_styles[wave_name.lower()]['width'],
+                                    color=wave_styles[wave_name.lower()]['color']
                                 ),
-                                name=f'{wave_name} ({freq} Hz)',
-                                hovertemplate=f'{wave_name}<br>Frequency: %{{y:.1f}} Hz<br>Time: %{{x:.1f}}s<extra></extra>'
+                                name=f'{wave_name} ({freq:.1f} Hz)'
                             )
                         )
                     
-                    frames.append(go.Frame(data=frame_data, name=f'frame{t_idx}'))
-
-                # Add initial empty traces
-                for wave_name, freq in pattern["frequencies"].items():
-                    fig.add_trace(
-                        go.Scatter(
-                            x=time_points,
-                            y=[None] * len(time_points),
-                            mode='lines',
-                            line=dict(
-                                width=3,
-                                color=wave_styles[wave_name.lower()]['color'],
-                                dash=wave_styles[wave_name.lower()]['dash']
-                            ),
-                            name=f'{wave_name} ({freq} Hz)',
-                            hovertemplate=f'{wave_name}<br>Frequency: %{{y:.1f}} Hz<br>Time: %{{x:.1f}}s<extra></extra>'
+                    fig.update_layout(
+                        height=300,
+                        margin=dict(l=40, r=40, t=40, b=40),
+                        paper_bgcolor='rgba(0,0,0,0)',
+                        plot_bgcolor='rgba(0,0,0,0)',
+                        xaxis=dict(
+                            showgrid=True,
+                            gridcolor='rgba(128,128,128,0.2)',
+                            title="Time (seconds)",
+                            title_font=dict(size=14)
+                        ),
+                        yaxis=dict(
+                            showgrid=True,
+                            gridcolor='rgba(128,128,128,0.2)',
+                            showticklabels=False,  # Hide y-axis labels for cleaner look
+                            title="Wave Patterns",
+                            title_font=dict(size=14)
+                        ),
+                        showlegend=True,
+                        legend=dict(
+                            yanchor="top",
+                            y=0.99,
+                            xanchor="right",
+                            x=0.99,
+                            bgcolor='rgba(255,255,255,0.1)',
+                            font=dict(size=12)
+                        ),
+                        title=dict(
+                            text=f"{demo_mode_type} Training Pattern",
+                            x=0.5,
+                            y=0.95
                         )
                     )
-
-                fig.frames = frames
-
-                # Update layout with animation settings
-                fig.update_layout(
-                    height=400,
-                    title={
-                        'text': "Neural Frequency Patterns",
-                        'y':0.95,
-                        'x':0.5,
-                        'xanchor': 'center',
-                        'yanchor': 'top',
-                        'font': dict(size=24)
-                    },
-                    xaxis_title={
-                        'text': "Time",
-                        'font': dict(size=16)
-                    },
-                    yaxis_title={
-                        'text': "Frequency (Hz)",
-                        'font': dict(size=16)
-                    },
-                    yaxis=dict(
-                        range=[0, max([freq for freq in pattern["frequencies"].values()]) * 1.4],
-                        gridcolor='rgba(128,128,128,0.2)',
-                        tickfont=dict(size=14),
-                    ),
-                    xaxis=dict(
-                        range=[0, 60],
-                        gridcolor='rgba(128,128,128,0.2)',
-                        tickfont=dict(size=14),
-                    ),
-                    plot_bgcolor='rgba(0,0,0,0)',
-                    paper_bgcolor='rgba(0,0,0,0)',
-                    hovermode='x unified',
-                    showlegend=True,
-                    legend=dict(
-                        yanchor="top",
-                        y=0.99,
-                        xanchor="right",
-                        x=0.99,
-                        bgcolor='rgba(255,255,255,0.1)',
-                        bordercolor='rgba(255,255,255,0.2)',
-                        borderwidth=1,
-                        font=dict(size=14)
-                    ),
-                    updatemenus=[{
-                        'type': 'buttons',
-                        'showactive': False,
-                        'y': 1.15,
-                        'x': 0.15,
-                        'xanchor': 'right',
-                        'buttons': [{
-                            'label': '▶️ Play',
-                            'method': 'animate',
-                            'args': [None, {
-                                'frame': {'duration': 100, 'redraw': True},
-                                'fromcurrent': True,
-                                'transition': {'duration': 30},
-                                'mode': 'immediate',
-                                'easing': 'linear'
-                            }]
-                        }]
-                    }]
-                )
-
-                # Add smooth transitions and better grid
-                fig.update_traces(line_shape='spline')
-                fig.update_xaxes(showgrid=True, gridwidth=1, gridcolor='rgba(128,128,128,0.1)')
-                fig.update_yaxes(showgrid=True, gridwidth=1, gridcolor='rgba(128,128,128,0.1)')
-                
-                # Display the figure
-                st.plotly_chart(fig, use_container_width=True)
-
-                # Session progress tracking
-                elapsed_time = time.time() - st.session_state.training_start_time
-                
-                # Progress bar and timer
-                progress = min(1.0, elapsed_time / st.session_state.current_session["expected_duration"])
-                progress_col1, progress_col2 = st.columns([3, 1])
-                
-                with progress_col1:
-                    st.progress(progress)
-                with progress_col2:
-                    st.write(f"Time: {int(elapsed_time)}s / {int(st.session_state.current_session['expected_duration'])}s")
-
-                # Add thoughts input section
-                st.write("### 💭 Your Thoughts")
-                user_input = st.text_area(
-                    "Share your experience during the session:",
-                    key=f"exercise_input_{int(elapsed_time)}",
-                    help="Type your thoughts about the exercise. Your typing patterns will be analyzed.",
-                    height=100,
-                    on_change=lambda: None  # Prevent default form submission
-                )
-                
-                # Record typing patterns
-                current_time = time.time()
-                if user_input:
-                    time_since_last = current_time - st.session_state.last_input_time
-                    if time_since_last > 0:  # Avoid division by zero
-                        typing_speed = len(user_input) / time_since_last
-                        st.session_state.typing_patterns.append(typing_speed)
-                        st.session_state.response_times.append(time_since_last)
-                        
-                        # Show real-time typing feedback
+                    
+                    st.plotly_chart(fig, use_container_width=True)
+                    
+                    # Training progress with improved metrics
+                    st.write("### 🎯 Training Progress")
+                    progress_cols = st.columns(4)
+                    
+                    with progress_cols[0]:
+                        sync_value = min(100, demo_progress * 120)
+                        st.metric("Neural Sync", 
+                                f"{sync_value:.0f}%", 
+                                delta=f"+{sync_value:.0f}%",
+                                delta_color="normal")
+                    
+                    with progress_cols[1]:
+                        flow_value = min(100, demo_progress * 110)
+                        st.metric("Flow State", 
+                                f"{flow_value:.0f}%",
+                                delta=f"+{flow_value:.0f}%",
+                                delta_color="normal")
+                    
+                    with progress_cols[2]:
+                        dilation = 1.0 + demo_progress
+                        st.metric("Time Dilation", 
+                                f"{dilation:.1f}x",
+                                delta=f"+{demo_progress*100:.0f}%",
+                                delta_color="normal")
+                    
+                    with progress_cols[3]:
+                        remaining = max(0, demo_duration - elapsed_time)
+                        st.metric("Time Remaining", 
+                                f"{int(remaining)}s",
+                                delta=None)
+                    
+                    # Progress bar with phases
+                    phases = ["Initiation", "Synchronization", "Flow State", "Time Dilation"]
+                    current_phase = int(min(3, demo_progress * 4))
+                    st.progress(demo_progress)
+                    st.info(f"Current Phase: {phases[current_phase]}")
+                    
+                    audio_data = st.session_state.time_dilation_system.apply_neural_pattern(pattern)
+                    
+                    # Save and play audio
+                    temp_audio_path = "temp_neural_pattern.wav"
+                    wavfile.write(temp_audio_path, 44100, audio_data.astype(np.float32))
+                    
+                    st.write("#### 🎧 Neural Entrainment Audio")
+                    st.write("Listen to the binaural beats while watching the patterns:")
+                    with open(temp_audio_path, 'rb') as audio_file:
+                        audio_bytes = audio_file.read()
+                        st.audio(audio_bytes, format='audio/wav')
+                    
+                    # Quick exercise
+                    st.write("#### 🧠 Quick Exercise")
+                    exercise_text = {
+                        "Speed Focus": "Type your thoughts as quickly as they come, focusing on speed and clarity...",
+                        "Deep Flow": "Let your thoughts flow naturally, observing the patterns of your mind...",
+                        "Time Compression": "Experience how time seems to slow down as you focus on each moment..."
+                    }[demo_mode_type]
+                    
+                    user_input = st.text_area(
+                        "Share your experience:",
+                        value=exercise_text,
+                        height=100,
+                        key=f"demo_input_{int(elapsed_time)}"
+                    )
+                    
+                    # Real-time feedback
+                    if user_input and user_input != "":
                         feedback_col1, feedback_col2 = st.columns(2)
                         with feedback_col1:
-                            if typing_speed > 5:
-                                st.success("🌊 Deep flow state detected!")
-                            elif typing_speed > 2:
-                                st.info("🌟 Good rhythm, stay focused.")
-                            else:
-                                st.info("🧘 Take your time, let thoughts flow.")
-                        
+                            st.success("🌊 Flow state detected!")
                         with feedback_col2:
-                            coherence = min(100, (typing_speed / 5) * 100)
-                            st.metric("Neural Coherence", f"{coherence:.1f}%", 
-                                    delta=f"{(coherence - st.session_state.get('last_coherence', 0)):.1f}%")
-                            st.session_state.last_coherence = coherence
+                            st.metric("Neural Synchronization", f"{min(100, demo_progress * 150):.0f}%", 
+                                    delta="+5%")
+                    
+                    # Auto-complete session when time is up
+                    if elapsed_time >= demo_duration:
+                        st.success("🎉 Demo Training Complete!")
+                        st.balloons()
+                        st.session_state.demo_training_active = False
                         
-                        # Auto-start animation when typing
-                        fig.update_layout(
-                            updatemenus=[{
-                                'type': 'buttons',
-                                'showactive': False,
-                                'y': 1.15,
-                                'x': 0.15,
-                                'xanchor': 'right',
-                                'buttons': [{
-                                    'label': '▶️ Play',
-                                    'method': 'animate',
-                                    'args': [None, {
-                                        'frame': {'duration': 100, 'redraw': True},
-                                        'fromcurrent': True,
-                                        'transition': {'duration': 30},
-                                        'mode': 'immediate',
-                                        'easing': 'linear'
-                                    }]
-                                }]
-                            }]
-                        )
-                        
-                        # Force graph update
-                        st.plotly_chart(fig, use_container_width=True)
-                
-                st.session_state.last_input_time = current_time
-
-                if elapsed_time >= st.session_state.current_session["expected_duration"]:
-                    if st.button("Complete Session", key="complete_session"):
-                        # Analyze performance
-                        performance = st.session_state.time_dilation_system.analyze_performance(
-                            elapsed_time, 
-                            st.session_state.current_session["expected_duration"]
-                        )
-                        
-                        # Analyze flow state
-                        flow_metrics = st.session_state.time_dilation_system.analyze_flow_state(
-                            st.session_state.typing_patterns,
-                            st.session_state.response_times
-                        )
-                        
-                        # Display results
-                        st.success("🎉 Session Completed!")
-                        
+                        # Show quick results
                         results_col1, results_col2, results_col3 = st.columns(3)
                         with results_col1:
-                            st.metric("Flow Depth", f"{performance['flow_depth']*100:.1f}%")
+                            st.metric("Final Flow Depth", "95%", delta="+45%")
                         with results_col2:
-                            st.metric("Time Accuracy", f"{performance['time_accuracy']*100:.1f}%")
+                            st.metric("Time Dilation", "2.5x", delta="+150%")
                         with results_col3:
-                            st.metric("Mastery Progress", f"{performance['mastery']:.1f}%")
+                            st.metric("Training Score", "98/100", delta="+28")
                         
-                        # Reset session state
-                        st.session_state.training_active = False
-                        st.session_state.training_start_time = None
-                        st.session_state.typing_patterns = []
-                        st.session_state.response_times = []
-                        
-                        # Rerun to update UI
-                        st.rerun()
-        
-        with tab2:
-            # Get consciousness state for Reality Manipulation tab
-            state = st.session_state['consciousness_state']
-            
-            st.write("### 🌊 Flow State Analysis")
-            
-            if hasattr(st.session_state, 'last_flow_metrics') and st.session_state.last_flow_metrics is not None:
-                metrics = st.session_state.last_flow_metrics
+                        if st.button("Try Another Demo"):
+                            st.session_state.demo_training_active = False
+                            st.rerun()
                 
-                # Display flow metrics
-                st.write("#### 📊 Flow Metrics")
-                cols = st.columns(4)
-                cols[0].metric("Typing Consistency", f"{metrics.get('typing_consistency', 0):.1f}%")
-                cols[1].metric("Response Stability", f"{metrics.get('response_stability', 0):.1f}%")
-                cols[2].metric("Flow Depth", f"{metrics.get('flow_depth', 0):.1f}%")
-                cols[3].metric("Time Dilation", f"{metrics.get('time_dilation_factor', 1):.1f}x")
-                
-                # Flow state feedback
-                st.write("#### 🔮 Flow State Insights")
-                feedback = st.session_state.time_dilation_system.generate_flow_state_feedback(metrics)
-                st.info(feedback)
-                
-                # Flow state visualization
-                st.write("#### 📈 Flow State Visualization")
-                fig = go.Figure()
-                
-                # Create radar chart
-                categories = ['Typing Consistency', 'Response Stability', 
-                            'Flow Depth', 'Time Dilation Factor']
-                values = [
-                    metrics.get('typing_consistency', 0),
-                    metrics.get('response_stability', 0),
-                    metrics.get('flow_depth', 0),
-                    metrics.get('time_dilation_factor', 1) * 20
-                ]
-                
-                fig.add_trace(go.Scatterpolar(
-                    r=values,
-                    theta=categories,
-                    fill='toself',
-                    name='Current Flow State'
-                ))
-                
-                fig.update_layout(
-                    polar=dict(
-                        radialaxis=dict(
-                            visible=True,
-                            range=[0, 100]
-                        )),
-                    showlegend=False,
-                    height=400
-                )
-                
-                st.plotly_chart(fig)
-                
-                # Add tips for improvement
-                st.write("#### 💡 Tips for Improvement")
-                accuracy_rate = sum(st.session_state.typing_patterns) / len(st.session_state.typing_patterns) * 100
-                if accuracy_rate < 80:
-                    st.warning("""
-                    To improve your flow state:
-                    1. Find a quiet environment
-                    2. Take deep breaths before starting
-                    3. Focus on one pattern at a time
-                    4. Type naturally without forcing speed
-                    """)
-                elif accuracy_rate < 95:
-                    st.info("""
-                    To deepen your flow state:
-                    1. Maintain steady breathing
-                    2. Let thoughts flow naturally
-                    3. Stay with the patterns longer
-                    4. Practice regularly
-                    """)
-                else:
-                    st.success("""
-                    Excellent flow state! To maintain:
-                    1. Keep your current practice routine
-                    2. Gradually increase session duration
-                    3. Experiment with different patterns
-                    4. Share your techniques with others
-                    """)
-            else:
-                st.info("Complete a training session to see your flow state analysis!")
-                st.write("""
-                #### How to get started:
-                1. Go to the Training tab
-                2. Click "Start Time Dilation Training"
-                3. Follow the exercise instructions
-                4. Type your thoughts in the input box
-                5. Complete the session to see your results
-                """)
-        
-        with tab3:
-            st.write("### 💎 Time Crystal Formation")
-            
-            if st.button("Generate Time Crystal"):
-                # Generate and store time crystal pattern
-                crystal_structure = st.session_state.time_dilation_system.generate_time_crystal()
-                visualization = st.session_state.time_dilation_system.visualize_time_crystal(crystal_structure)
-                st.session_state.current_crystal = visualization
-                st.rerun()
-            
-            if hasattr(st.session_state, 'current_crystal') and st.session_state.current_crystal is not None:
-                # Display time crystal visualization
-                st.write("#### 🔮 Crystal Structure Visualization")
-                
-                fig = go.Figure()
-                crystal_data = st.session_state.current_crystal.get('crystal_data', [])
-                
-                for phase_data in crystal_data:
-                    fig.add_trace(go.Scatter(
-                        y=phase_data.get('time', []),
-                        x=phase_data.get('values', []),
-                        name=phase_data.get('phase', '').title(),
-                        mode='lines'
-                    ))
-                
-                fig.update_layout(
-                    title="Time Crystal Phase Patterns",
-                    xaxis_title="Time",
-                    yaxis_title="Amplitude",
-                    height=400
-                )
-                
-                st.plotly_chart(fig)
-                
-                # Display phase information
-                st.write("#### 📊 Phase Analysis")
-                for phase_data in crystal_data:
-                    phase_name = phase_data.get('phase', '').title()
-                    with st.expander(f"Phase: {phase_name}"):
-                        st.write(f"""
-                        This phase represents the {phase_name} of your temporal perception.
-                        Focus on the pattern to enhance your time dilation capabilities.
-                        """)
-            else:
-                st.info("Generate a time crystal to begin advanced temporal training!")
+                # Show animated neural pattern
+                st.write("#### 🧬 Neural Pattern Visualization")
+                # ... (keep existing neural pattern visualization code)
 
-        with tab4:
-            st.write("### 🔄 Advanced Training Modes")
-            
-            # Training mode selection
-            if not st.session_state.training_active:
-                mode = st.selectbox(
-                    "Select Advanced Training Mode",
-                    ["Customizable Duration", "Adaptive Difficulty", "Multi-Modal Training"],
-                    help="""
-                    Customizable Duration: Set your own session duration
-                    Adaptive Difficulty: Adjust difficulty based on performance
-                    Multi-Modal Training: Combine multiple training modes
-                    """
-                )
-                
-                if mode == "Customizable Duration":
+            else:
+                # Original training mode code
+                if not st.session_state.training_active:
+                    mode = st.selectbox(
+                        "Select Training Mode",
+                        ["Standard", "Speed Focus", "Deep Flow", "Time Compression"],
+                        help="""
+                        Standard: Balanced training for beginners
+                        Speed Focus: Emphasis on quick thinking and rapid responses
+                        Deep Flow: Extended sessions for deeper flow states
+                        Time Compression: Advanced time dilation training
+                        """
+                    )
+                    
                     duration = st.slider(
                         "Session Duration (minutes)",
                         min_value=1,
-                        max_value=60,
+                        max_value=30,
                         value=5,
                         help="Choose your session duration. Start with shorter sessions and gradually increase."
                     )
                     
-                    if st.button("Start Advanced Training"):
+                    if st.button("Start Time Dilation Training"):
                         st.session_state.training_active = True
                         st.session_state.training_start_time = time.time()
                         st.session_state.current_session = st.session_state.time_dilation_system.train_time_perception(
@@ -3075,29 +3080,794 @@ elif selected_page == "Time Dilation Training":
                         )
                         st.rerun()
                 
-                elif mode == "Adaptive Difficulty":
-                    if st.button("Start Advanced Training"):
-                        st.session_state.training_active = True
-                        st.session_state.training_start_time = time.time()
-                        st.session_state.current_session = st.session_state.time_dilation_system.train_time_perception(
-                            mode=mode
+                # Display active training session
+                if st.session_state.training_active and st.session_state.training_start_time is not None:
+                    elapsed_time = time.time() - st.session_state.training_start_time
+                    
+                    # Enhanced progress tracking with multiple metrics
+                    metrics_col1, metrics_col2, metrics_col3, metrics_col4 = st.columns(4)
+                    
+                    with metrics_col1:
+                        flow_indicator = min(1.0, elapsed_time / (st.session_state.current_session["expected_duration"] * 0.3))
+                        st.metric("Flow State", f"{flow_indicator:.0%}", delta=f"{flow_indicator*100:.1f}%")
+                    
+                    with metrics_col2:
+                        coherence = min(1.0, elapsed_time / st.session_state.current_session["expected_duration"])
+                        st.metric("Neural Coherence", f"{coherence:.0%}", delta=f"{coherence*100:.1f}%")
+                    
+                    with metrics_col3:
+                        stability = min(1.0, (flow_indicator + coherence) / 2)
+                        st.metric("Reality Stability", f"{stability:.0%}", delta=f"{stability*100:.1f}%")
+                    
+                    with metrics_col4:
+                        dilation = 1.0 + (stability * 0.5)
+                        st.metric("Time Dilation", f"{dilation:.1f}x", delta=f"+{(dilation-1)*100:.0f}%")
+
+                    # Enhanced progress bar with gradient
+                    progress = min(1.0, elapsed_time / st.session_state.current_session["expected_duration"])
+                    st.markdown(
+                        f"""
+                        <style>
+                            .stProgress > div > div {{
+                                background-image: linear-gradient(to right, #FF6B6B, #4ECDC4);
+                            }}
+                        </style>
+                        """,
+                        unsafe_allow_html=True
+                    )
+                    st.progress(progress)
+                    st.write(f"Session Time: {elapsed_time:.1f}s")
+                    
+                    # Display exercise details
+                    st.write("#### 🧠 Current Exercise")
+                    st.info(st.session_state.current_session["exercise"]["prompt"])
+                    
+                    # Neural pattern visualization with animation
+                    st.write("#### 🧬 Neural Entrainment Pattern")
+                    pattern = st.session_state.neural_pattern
+                    
+                    # Generate and play binaural beats first
+                    audio_data = st.session_state.time_dilation_system.apply_neural_pattern(pattern)
+                    
+                    # Save audio to a temporary file
+                    temp_audio_path = "temp_neural_pattern.wav"
+                    wavfile.write(temp_audio_path, 44100, audio_data.astype(np.float32))
+                    
+                    # Create audio player
+                    with open(temp_audio_path, 'rb') as audio_file:
+                        audio_bytes = audio_file.read()
+                        audio_player = st.audio(audio_bytes, format='audio/wav')
+
+                    # Create dynamic visualization
+                    fig = go.Figure()
+
+                    # Time points for x-axis (60 seconds)
+                    time_points = np.linspace(0, 60, 300)
+                    
+                    # Colors and styles for different wave types
+                    wave_styles = {
+                        'theta': {'color': '#FF6B6B', 'dash': 'solid'},     # Coral red
+                        'alpha': {'color': '#4ECDC4', 'dash': 'solid'},     # Turquoise
+                        'beta': {'color': '#45B7D1', 'dash': 'solid'},      # Sky blue
+                        'gamma': {'color': '#96CEB4', 'dash': 'solid'}      # Sage green
+                    }
+
+                    # Add traces and frames for animation
+                    frames = []
+                    for t_idx, t in enumerate(time_points):
+                        frame_data = []
+                        
+                        for wave_name, freq in pattern["frequencies"].items():
+                            # Calculate dynamic frequency with phase offset
+                            phase = list(pattern["frequencies"].keys()).index(wave_name) * np.pi/3
+                            y_vals = []
+                            
+                            for time_point in time_points:
+                                if time_point <= t:
+                                    y = freq + freq * 0.15 * np.sin(2 * np.pi * 0.5 * time_point + phase)
+                                    y_vals.append(y)
+                                else:
+                                    y_vals.append(None)
+                            
+                            # Add trace to frame
+                            frame_data.append(
+                                go.Scatter(
+                                    x=time_points,
+                                    y=y_vals,
+                                    mode='lines',
+                                    line=dict(
+                                        width=3,
+                                        color=wave_styles[wave_name.lower()]['color'],
+                                        dash=wave_styles[wave_name.lower()]['dash']
+                                    ),
+                                    name=f'{wave_name} ({freq} Hz)',
+                                    hovertemplate=f'{wave_name}<br>Frequency: %{{y:.1f}} Hz<br>Time: %{{x:.1f}}s<extra></extra>'
+                                )
+                            )
+                        
+                        frames.append(go.Frame(data=frame_data, name=f'frame{t_idx}'))
+
+                    # Add initial empty traces
+                    for wave_name, freq in pattern["frequencies"].items():
+                        fig.add_trace(
+                            go.Scatter(
+                                x=time_points,
+                                y=[None] * len(time_points),
+                                mode='lines',
+                                line=dict(
+                                    width=3,
+                                    color=wave_styles[wave_name.lower()]['color'],
+                                    dash=wave_styles[wave_name.lower()]['dash']
+                                ),
+                                name=f'{wave_name} ({freq} Hz)',
+                                hovertemplate=f'{wave_name}<br>Frequency: %{{y:.1f}} Hz<br>Time: %{{x:.1f}}s<extra></extra>'
+                            )
                         )
-                        st.session_state.neural_pattern = st.session_state.time_dilation_system.generate_neural_pattern(
-                            mode=mode
-                        )
-                        st.rerun()
+
+                    fig.frames = frames
+
+                    # Update layout with animation settings
+                    fig.update_layout(
+                        height=400,
+                        title={
+                            'text': "Neural Frequency Patterns",
+                            'y':0.95,
+                            'x':0.5,
+                            'xanchor': 'center',
+                            'yanchor': 'top',
+                            'font': dict(size=24)
+                        },
+                        xaxis_title={
+                            'text': "Time",
+                            'font': dict(size=16)
+                        },
+                        yaxis_title={
+                            'text': "Frequency (Hz)",
+                            'font': dict(size=16)
+                        },
+                        yaxis=dict(
+                            range=[0, max([freq for freq in pattern["frequencies"].values()]) * 1.4],
+                            gridcolor='rgba(128,128,128,0.2)',
+                            tickfont=dict(size=14),
+                        ),
+                        xaxis=dict(
+                            range=[0, 60],
+                            gridcolor='rgba(128,128,128,0.2)',
+                            tickfont=dict(size=14),
+                        ),
+                        plot_bgcolor='rgba(0,0,0,0)',
+                        paper_bgcolor='rgba(0,0,0,0)',
+                        hovermode='x unified',
+                        showlegend=True,
+                        legend=dict(
+                            yanchor="top",
+                            y=0.99,
+                            xanchor="right",
+                            x=0.99,
+                            bgcolor='rgba(255,255,255,0.1)',
+                            bordercolor='rgba(255,255,255,0.2)',
+                            borderwidth=1,
+                            font=dict(size=14)
+                        ),
+                        updatemenus=[{
+                            'type': 'buttons',
+                            'showactive': False,
+                            'y': 1.15,
+                            'x': 0.15,
+                            'xanchor': 'right',
+                            'buttons': [{
+                                'label': '▶️ Play',
+                                'method': 'animate',
+                                'args': [None, {
+                                    'frame': {'duration': 100, 'redraw': True},
+                                    'fromcurrent': True,
+                                    'transition': {'duration': 30},
+                                    'mode': 'immediate',
+                                    'easing': 'linear'
+                                }]
+                            }]
+                        }]
+                    )
+
+                    # Add smooth transitions and better grid
+                    fig.update_traces(line_shape='spline')
+                    fig.update_xaxes(showgrid=True, gridwidth=1, gridcolor='rgba(128,128,128,0.1)')
+                    fig.update_yaxes(showgrid=True, gridwidth=1, gridcolor='rgba(128,128,128,0.1)')
+                    
+                    # Display the figure
+                    st.plotly_chart(fig, use_container_width=True)
+
+                    # Session progress tracking
+                    elapsed_time = time.time() - st.session_state.training_start_time
+                    
+                    # Progress bar and timer
+                    progress = min(1.0, elapsed_time / st.session_state.current_session["expected_duration"])
+                    progress_col1, progress_col2 = st.columns([3, 1])
+                    
+                    with progress_col1:
+                        st.progress(progress)
+                    with progress_col2:
+                        st.write(f"Time: {int(elapsed_time)}s / {int(st.session_state.current_session['expected_duration'])}s")
+
+                    # Add thoughts input section
+                    st.write("### 💭 Your Thoughts")
+                    user_input = st.text_area(
+                        "Share your experience during the session:",
+                        key=f"exercise_input_{int(elapsed_time)}",
+                        help="Type your thoughts about the exercise. Your typing patterns will be analyzed.",
+                        height=100,
+                        on_change=lambda: None  # Prevent default form submission
+                    )
+                    
+                    # Record typing patterns
+                    current_time = time.time()
+                    if user_input:
+                        time_since_last = current_time - st.session_state.last_input_time
+                        if time_since_last > 0:  # Avoid division by zero
+                            typing_speed = len(user_input) / time_since_last
+                            st.session_state.typing_patterns.append(typing_speed)
+                            st.session_state.response_times.append(time_since_last)
+                            
+                            # Show real-time typing feedback
+                            feedback_col1, feedback_col2 = st.columns(2)
+                            with feedback_col1:
+                                if typing_speed > 5:
+                                    st.success("🌊 Deep flow state detected!")
+                                elif typing_speed > 2:
+                                    st.info("🌟 Good rhythm, stay focused.")
+                                else:
+                                    st.info("🧘 Take your time, let thoughts flow.")
+                            
+                            with feedback_col2:
+                                coherence = min(100, (typing_speed / 5) * 100)
+                                st.metric("Neural Coherence", f"{coherence:.1f}%", 
+                                        delta=f"{(coherence - st.session_state.get('last_coherence', 0)):.1f}%")
+                                st.session_state.last_coherence = coherence
+                            
+                            # Auto-start animation when typing
+                            fig.update_layout(
+                                updatemenus=[{
+                                    'type': 'buttons',
+                                    'showactive': False,
+                                    'y': 1.15,
+                                    'x': 0.15,
+                                    'xanchor': 'right',
+                                    'buttons': [{
+                                        'label': '▶️ Play',
+                                        'method': 'animate',
+                                        'args': [None, {
+                                            'frame': {'duration': 100, 'redraw': True},
+                                            'fromcurrent': True,
+                                            'transition': {'duration': 30},
+                                            'mode': 'immediate',
+                                            'easing': 'linear'
+                                        }]
+                                    }]
+                                }]
+                            )
+                            
+                            # Force graph update
+                            st.plotly_chart(fig, use_container_width=True)
+                    
+                    st.session_state.last_input_time = current_time
+
+                    if elapsed_time >= st.session_state.current_session["expected_duration"]:
+                        if st.button("Complete Session", key="complete_session"):
+                            # Analyze performance
+                            performance = st.session_state.time_dilation_system.analyze_performance(
+                                elapsed_time, 
+                                st.session_state.current_session["expected_duration"]
+                            )
+                            
+                            # Analyze flow state
+                            flow_metrics = st.session_state.time_dilation_system.analyze_flow_state(
+                                st.session_state.typing_patterns,
+                                st.session_state.response_times
+                            )
+                            
+                            # Display results
+                            st.success("🎉 Session Completed!")
+                            
+                            results_col1, results_col2, results_col3 = st.columns(3)
+                            with results_col1:
+                                st.metric("Flow Depth", f"{performance['flow_depth']*100:.1f}%")
+                            with results_col2:
+                                st.metric("Time Accuracy", f"{performance['time_accuracy']*100:.1f}%")
+                            with results_col3:
+                                st.metric("Mastery Progress", f"{performance['mastery']:.1f}%")
+                            
+                            # Reset session state
+                            st.session_state.training_active = False
+                            st.session_state.training_start_time = None
+                            st.session_state.typing_patterns = []
+                            st.session_state.response_times = []
+                            
+                            # Rerun to update UI
+                            st.rerun()
+            
+            with tab2:
+                # Get consciousness state for Reality Manipulation tab
+                state = st.session_state['consciousness_state']
                 
-                elif mode == "Multi-Modal Training":
-                    if st.button("Start Advanced Training"):
-                        st.session_state.training_active = True
-                        st.session_state.training_start_time = time.time()
-                        st.session_state.current_session = st.session_state.time_dilation_system.train_time_perception(
-                            mode=mode
+                st.write("### 🌊 Flow State Analysis")
+                
+                if demo_mode:
+                    st.info("🎮 Demo Mode: Visualizing flow state patterns")
+                    
+                    # Interactive flow state demo
+                    flow_intensity = st.slider("Flow State Intensity", 0.0, 1.0, 0.7)
+                    
+                    # Generate dynamic flow pattern
+                    t = np.linspace(0, 8*np.pi, 1000)
+                    
+                    # Create flow state visualization
+                    fig = go.Figure()
+                    
+                    # Base flow wave
+                    base_flow = np.sin(t) * np.exp(-t/16) * flow_intensity
+                    
+                    # Add multiple harmonics for rich visualization
+                    harmonics = [1, 2, 3, 4]
+                    colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4']
+                    
+                    for i, (harmonic, color) in enumerate(zip(harmonics, colors)):
+                        phase = i * np.pi / 4
+                        y = np.sin(harmonic * t + phase) * np.exp(-t/16) * flow_intensity
+                        
+                        fig.add_trace(go.Scatter(
+                            x=t,
+                            y=y,
+                            name=f'Harmonic {harmonic}',
+                            line=dict(color=color, width=2),
+                            fill='tonexty' if i > 0 else None,
+                            fillcolor=f'rgba{tuple(list(int(color.lstrip("#")[i:i+2], 16) for i in (0, 2, 4)) + [0.1])}'
+                        ))
+                    
+                    fig.update_layout(
+                        title="Flow State Harmonics",
+                        height=500,
+                        showlegend=True,
+                        paper_bgcolor='rgba(0,0,0,0)',
+                        plot_bgcolor='rgba(0,0,0,0)',
+                        xaxis=dict(showgrid=False, title="Time"),
+                        yaxis=dict(showgrid=False, title="Flow Amplitude")
+                    )
+                    
+                    st.plotly_chart(fig, use_container_width=True)
+                    
+                    # Flow state metrics
+                    metrics_col1, metrics_col2, metrics_col3 = st.columns(3)
+                    
+                    with metrics_col1:
+                        st.metric("Flow Depth", f"{flow_intensity*100:.0f}%", 
+                                 delta=f"+{flow_intensity*100:.0f}%")
+                    
+                    with metrics_col2:
+                        coherence = flow_intensity * 0.9
+                        st.metric("Neural Coherence", f"{coherence*100:.0f}%",
+                                 delta=f"+{coherence*100:.0f}%")
+                    
+                    with metrics_col3:
+                        stability = (flow_intensity + coherence) / 2
+                        st.metric("Flow Stability", f"{stability*100:.0f}%",
+                                 delta=f"+{stability*100:.0f}%")
+                
+                else:
+                    # Original flow state code
+                    if hasattr(st.session_state, 'last_flow_metrics') and st.session_state.last_flow_metrics is not None:
+                        metrics = st.session_state.last_flow_metrics
+                        
+                        # Display flow metrics
+                        st.write("#### 📊 Flow Metrics")
+                        cols = st.columns(4)
+                        cols[0].metric("Typing Consistency", f"{metrics.get('typing_consistency', 0):.1f}%")
+                        cols[1].metric("Response Stability", f"{metrics.get('response_stability', 0):.1f}%")
+                        cols[2].metric("Flow Depth", f"{metrics.get('flow_depth', 0):.1f}%")
+                        cols[3].metric("Time Dilation", f"{metrics.get('time_dilation_factor', 1):.1f}x")
+                        
+                        # Flow state feedback
+                        st.write("#### 🔮 Flow State Insights")
+                        feedback = st.session_state.time_dilation_system.generate_flow_state_feedback(metrics)
+                        st.info(feedback)
+                        
+                        # Flow state visualization
+                        st.write("#### 📈 Flow State Visualization")
+                        fig = go.Figure()
+                        
+                        # Create radar chart
+                        categories = ['Typing Consistency', 'Response Stability', 
+                                    'Flow Depth', 'Time Dilation Factor']
+                        values = [
+                            metrics.get('typing_consistency', 0),
+                            metrics.get('response_stability', 0),
+                            metrics.get('flow_depth', 0),
+                            metrics.get('time_dilation_factor', 1) * 20
+                        ]
+                        
+                        fig.add_trace(go.Scatterpolar(
+                            r=values,
+                            theta=categories,
+                            fill='toself',
+                            name='Current Flow State'
+                        ))
+                        
+                        fig.update_layout(
+                            polar=dict(
+                                radialaxis=dict(
+                                    visible=True,
+                                    range=[0, 100]
+                                )),
+                            showlegend=False,
+                            height=400
                         )
-                        st.session_state.neural_pattern = st.session_state.time_dilation_system.generate_neural_pattern(
-                            mode=mode
+                        
+                        st.plotly_chart(fig)
+                        
+                        # Add tips for improvement
+                        st.write("#### 💡 Tips for Improvement")
+                        accuracy_rate = sum(st.session_state.typing_patterns) / len(st.session_state.typing_patterns) * 100
+                        if accuracy_rate < 80:
+                            st.warning("""
+                            To improve your flow state:
+                            1. Find a quiet environment
+                            2. Take deep breaths before starting
+                            3. Focus on one pattern at a time
+                            4. Type naturally without forcing speed
+                            """)
+                        elif accuracy_rate < 95:
+                            st.info("""
+                            To deepen your flow state:
+                            1. Maintain steady breathing
+                            2. Let thoughts flow naturally
+                            3. Stay with the patterns longer
+                            4. Practice regularly
+                            """)
+                        else:
+                            st.success("""
+                            Excellent flow state! To maintain:
+                            1. Keep your current practice routine
+                            2. Gradually increase session duration
+                            3. Experiment with different patterns
+                            4. Share your techniques with others
+                            """)
+                    else:
+                        st.info("Complete a training session to see your flow state analysis!")
+                        st.write("""
+                        #### How to get started:
+                        1. Go to the Training tab
+                        2. Click "Start Time Dilation Training"
+                        3. Follow the exercise instructions
+                        4. Type your thoughts in the input box
+                        5. Complete the session to see your results
+                        """)
+            
+            with tab3:
+                st.write("### 💎 Time Crystal Formation")
+                
+                if demo_mode:
+                    st.info("🎮 Demo Mode: Exploring time crystal patterns")
+                    
+                    # Interactive controls for the demo
+                    demo_col1, demo_col2 = st.columns(2)
+                    with demo_col1:
+                        rotation_speed = st.slider("Crystal Rotation", 0.0, 2.0, 1.0)
+                    with demo_col2:
+                        complexity = st.slider("Pattern Complexity", 1, 5, 3)
+                    
+                    # Generate enhanced time crystal visualization
+                    t = np.linspace(0, 12*np.pi, 1000)
+                    
+                    # Create 3D spiral with dynamic properties
+                    fig = go.Figure()
+                    
+                    # Generate multiple interweaving spirals
+                    for i in range(complexity):
+                        phase = i * 2 * np.pi / complexity
+                        
+                        # Create dynamic spiral pattern
+                        radius = 2 + np.sin(t/3 + phase)
+                        x = radius * np.cos(t * rotation_speed + phase)
+                        y = radius * np.sin(t * rotation_speed + phase)
+                        z = t/3 + np.sin(t * rotation_speed + phase)
+                        
+                        # Add trace with custom styling
+                        fig.add_trace(go.Scatter3d(
+                            x=x,
+                            y=y,
+                            z=z,
+                            mode='lines',
+                            name=f'Crystal Phase {i+1}',
+                            line=dict(
+                                color=f'hsl({i*360/complexity}, 70%, 50%)',
+                                width=5
+                            ),
+                            hoverinfo='name'
+                        ))
+                    
+                    # Update layout with enhanced styling
+                    fig.update_layout(
+                        title={
+                            'text': "Time Crystal Manifestation",
+                            'y':0.95,
+                            'x':0.5,
+                            'xanchor': 'center',
+                            'yanchor': 'top',
+                            'font': dict(size=24)
+                        },
+                        scene = dict(
+                            xaxis_title='Temporal Dimension X',
+                            yaxis_title='Temporal Dimension Y',
+                            zaxis_title='Phase Amplitude',
+                            camera=dict(
+                                up=dict(x=0, y=0, z=1),
+                                center=dict(x=0, y=0, z=0),
+                                eye=dict(x=1.5, y=1.5, z=1.5)
+                            ),
+                            aspectmode='cube'
+                        ),
+                        height=700,
+                        margin=dict(l=0, r=0, t=30, b=0),
+                        showlegend=True,
+                        legend=dict(
+                            yanchor="top",
+                            y=0.99,
+                            xanchor="right",
+                            x=0.99,
+                            bgcolor='rgba(255,255,255,0.1)',
+                            bordercolor='rgba(255,255,255,0.2)',
+                            borderwidth=1
+                        ),
+                        paper_bgcolor='rgba(0,0,0,0)',
+                        plot_bgcolor='rgba(0,0,0,0)',
+                    )
+                    
+                    # Add auto-rotation animation
+                    frames = []
+                    for i in range(36):  # 36 frames for smooth 360-degree rotation
+                        camera = dict(
+                            up=dict(x=0, y=0, z=1),
+                            center=dict(x=0, y=0, z=0),
+                            eye=dict(
+                                x=1.5 * np.cos(i * 2 * np.pi / 36),
+                                y=1.5 * np.sin(i * 2 * np.pi / 36),
+                                z=1.5
+                            )
                         )
+                        frames.append(go.Frame(layout=dict(scene_camera=camera)))
+
+                    fig.frames = frames
+                    
+                    fig.update_layout(
+                        updatemenus=[{
+                            'buttons': [
+                                {
+                                    'args': [None, {
+                                        'frame': {'duration': 50, 'redraw': True},
+                                        'fromcurrent': True,
+                                        'transition': {'duration': 0},
+                                        'mode': 'immediate'
+                                    }],
+                                    'label': '🔄 Rotate',
+                                    'method': 'animate'
+                                }
+                            ],
+                            'type': 'buttons',
+                            'showactive': False,
+                            'y': 1.1,
+                            'x': 0.1,
+                            'xanchor': 'right'
+                        }]
+                    )
+                    
+                    st.plotly_chart(fig, use_container_width=True)
+                    
+                    # Add phase information with enhanced styling
+                    st.write("#### 📊 Crystal Phase Analysis")
+                    
+                    # Create expandable sections for each phase
+                    for i in range(complexity):
+                        phase_name = ['Initiation', 'Expansion', 'Stabilization', 'Integration', 'Transcendence'][i % 5]
+                        with st.expander(f"Phase {i+1}: {phase_name}"):
+                            # Generate random but consistent metrics for demo
+                            stability = 0.7 + np.sin(i * np.pi / complexity) * 0.3
+                            coherence = 0.6 + np.cos(i * np.pi / complexity) * 0.4
+                            alignment = 0.8 + np.sin((i+1) * np.pi / complexity) * 0.2
+                            
+                            st.markdown(f"""
+                            <div style='background-color: rgba(78,205,196,0.1); padding: 1rem; border-radius: 0.5rem;'>
+                                <h4 style='color: hsl({i*360/complexity}, 70%, 50%);'>{phase_name} Properties:</h4>
+                                <ul>
+                                    <li>Temporal Stability: {stability:.2f}</li>
+                                    <li>Phase Coherence: {coherence:.2f}</li>
+                                    <li>Quantum Alignment: {alignment:.2f}</li>
+                                </ul>
+                                <p>This phase represents the {phase_name.lower()} stage of temporal manipulation.
+                                The crystal structure reveals unique patterns of time dilation and compression.</p>
+                            </div>
+                            """, unsafe_allow_html=True)
+                
+                else:
+                    # Original time crystal code
+                    if st.button("Generate Time Crystal"):
+                        # Generate and store time crystal pattern
+                        crystal_structure = st.session_state.time_dilation_system.generate_time_crystal()
+                        visualization = st.session_state.time_dilation_system.visualize_time_crystal(crystal_structure)
+                        st.session_state.current_crystal = visualization
                         st.rerun()
+                    
+                    if hasattr(st.session_state, 'current_crystal') and st.session_state.current_crystal is not None:
+                        # Display enhanced time crystal visualization
+                        st.write("#### 🔮 Crystal Structure Visualization")
+                        
+                        # Create 3D visualization
+                        fig = go.Figure()
+                        crystal_data = st.session_state.current_crystal.get('crystal_data', [])
+                        
+                        # Generate time points for 3D spiral
+                        t = np.linspace(0, 10*np.pi, 1000)
+                        
+                        for idx, phase_data in enumerate(crystal_data):
+                            # Create 3D spiral pattern
+                            radius = 2 + np.sin(t/3)
+                            x = radius * np.cos(t)
+                            y = radius * np.sin(t)
+                            z = t/3 + np.array(phase_data.get('values', [])) * 0.5
+                            
+                            # Add 3D trace with custom styling
+                            fig.add_trace(go.Scatter3d(
+                                x=x,
+                                y=y,
+                                z=z,
+                                mode='lines',
+                                name=phase_data.get('phase', '').title(),
+                                line=dict(
+                                    color=f'hsl({idx*360/len(crystal_data)}, 70%, 50%)',
+                                    width=3
+                                ),
+                                hovertemplate=(
+                                    f"Phase: {phase_data.get('phase', '').title()}<br>" +
+                                    "Amplitude: %{z:.2f}<br>" +
+                                    "Time: %{x:.2f}<extra></extra>"
+                                )
+                            ))
+                        
+                        # Update 3D layout with enhanced styling
+                        fig.update_layout(
+                            title={
+                                'text': "Time Crystal Phase Patterns",
+                                'y':0.95,
+                                'x':0.5,
+                                'xanchor': 'center',
+                                'yanchor': 'top',
+                                'font': dict(size=24)
+                            },
+                            scene = dict(
+                                xaxis_title='Temporal Dimension X',
+                                yaxis_title='Temporal Dimension Y',
+                                zaxis_title='Phase Amplitude',
+                                camera=dict(
+                                    up=dict(x=0, y=0, z=1),
+                                    center=dict(x=0, y=0, z=0),
+                                    eye=dict(x=1.5, y=1.5, z=1.5)
+                                ),
+                                aspectmode='cube'
+                            ),
+                            height=700,
+                            margin=dict(l=0, r=0, t=30, b=0),
+                            showlegend=True,
+                            legend=dict(
+                                yanchor="top",
+                                y=0.99,
+                                xanchor="right",
+                                x=0.99,
+                                bgcolor='rgba(255,255,255,0.1)',
+                                bordercolor='rgba(255,255,255,0.2)',
+                                borderwidth=1
+                            ),
+                            paper_bgcolor='rgba(0,0,0,0)',
+                            plot_bgcolor='rgba(0,0,0,0)',
+                        )
+                        
+                        # Add interactive camera controls
+                        fig.update_layout(
+                            updatemenus=[{
+                                'buttons': [
+                                    {
+                                        'args': [None, {'frame': {'duration': 500, 'redraw': True},
+                                                      'fromcurrent': True,
+                                                      'transition': {'duration': 300, 'easing': 'quadratic-in-out'}}],
+                                        'label': '🔄 Rotate',
+                                        'method': 'animate'
+                                    }
+                                ],
+                                'type': 'buttons',
+                                'showactive': False,
+                                'y': 1.1,
+                                'x': 0.1,
+                                'xanchor': 'right'
+                            }]
+                        )
+                        
+                        # Display the enhanced 3D visualization
+                        st.plotly_chart(fig, use_container_width=True)
+                        
+                        # Add phase information with enhanced styling
+                        st.write("#### 📊 Phase Analysis")
+                        for phase_data in crystal_data:
+                            phase_name = phase_data.get('phase', '').title()
+                            with st.expander(f"Phase: {phase_name}"):
+                                st.markdown(f"""
+                                <div style='background-color: rgba(255,255,255,0.1); padding: 1rem; border-radius: 0.5rem;'>
+                                    <h4 style='color: #4ECDC4;'>{phase_name} Phase Properties:</h4>
+                                    <ul>
+                                        <li>Temporal Stability: {random.uniform(0.7, 1.0):.2f}</li>
+                                        <li>Phase Coherence: {random.uniform(0.7, 1.0):.2f}</li>
+                                        <li>Quantum Alignment: {random.uniform(0.7, 1.0):.2f}</li>
+                                    </ul>
+                                    <p>This phase represents the {phase_name.lower()} of your temporal perception.
+                                    Focus on the pattern to enhance your time dilation capabilities.</p>
+                                </div>
+                                """, unsafe_allow_html=True)
+
+            with tab4:
+                st.write("### 🔄 Advanced Training Modes")
+                
+                # Training mode selection
+                if not st.session_state.training_active:
+                    mode = st.selectbox(
+                        "Select Advanced Training Mode",
+                        ["Customizable Duration", "Adaptive Difficulty", "Multi-Modal Training"],
+                        help="""
+                        Customizable Duration: Set your own session duration
+                        Adaptive Difficulty: Adjust difficulty based on performance
+                        Multi-Modal Training: Combine multiple training modes
+                        """
+                    )
+                    
+                    if mode == "Customizable Duration":
+                        duration = st.slider(
+                            "Session Duration (minutes)",
+                            min_value=1,
+                            max_value=60,
+                            value=5,
+                            help="Choose your session duration. Start with shorter sessions and gradually increase."
+                        )
+                        
+                        if st.button("Start Advanced Training"):
+                            st.session_state.training_active = True
+                            st.session_state.training_start_time = time.time()
+                            st.session_state.current_session = st.session_state.time_dilation_system.train_time_perception(
+                                mode=mode,
+                                duration=duration * 60
+                            )
+                            st.session_state.neural_pattern = st.session_state.time_dilation_system.generate_neural_pattern(
+                                mode=mode
+                            )
+                            st.rerun()
+                    
+                    elif mode == "Adaptive Difficulty":
+                        if st.button("Start Advanced Training"):
+                            st.session_state.training_active = True
+                            st.session_state.training_start_time = time.time()
+                            st.session_state.current_session = st.session_state.time_dilation_system.train_time_perception(
+                                mode=mode
+                            )
+                            st.session_state.neural_pattern = st.session_state.time_dilation_system.generate_neural_pattern(
+                                mode=mode
+                            )
+                            st.rerun()
+                    
+                    elif mode == "Multi-Modal Training":
+                        if st.button("Start Advanced Training"):
+                            st.session_state.training_active = True
+                            st.session_state.training_start_time = time.time()
+                            st.session_state.current_session = st.session_state.time_dilation_system.train_time_perception(
+                                mode=mode
+                            )
+                            st.session_state.neural_pattern = st.session_state.time_dilation_system.generate_neural_pattern(
+                                mode=mode
+                            )
+                            st.rerun()
 
     time_dilation_tab()
 
