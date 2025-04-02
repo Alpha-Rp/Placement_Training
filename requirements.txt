@@ -31,3 +31,4 @@ python-multipart
 requests
 
 
+google-generativeai
